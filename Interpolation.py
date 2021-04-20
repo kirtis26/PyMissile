@@ -1,18 +1,8 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import scipy.interpolate as interp
 from mpl_toolkits.mplot3d import Axes3D
-
-
-# In[2]:
-
 
 class Interp1d(object):
     """
@@ -47,10 +37,6 @@ class Interp1d(object):
         fig = plt.figure(dpi=100)
         plt.plot(self.mx, self.mf, 'k')
         plt.show()
-
-
-# In[5]:
-
 
 class Interp2d(object):
     """
