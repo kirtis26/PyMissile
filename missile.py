@@ -1,43 +1,18 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[ ]:
 
 
 import random as rd
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt 
 from math import *
-from tqdm import tqdm
-from Aero_info import table_atm
-from Interpolation import Interp1d, Interp2d, InterpVec
+from aero_info import table_atm
+from interpolation import Interp1d, Interp2d, InterpVec
 
 
-# In[2]:
-
-
-opts = {
-    'm_0': 2402.896642527979,
-    'd': 0.515,
-    'vel_abs': 1410,
-    't_marsh': 11.602913766241713,
-    'w_marsh': 1417.7090190915076,
-    'P_marsh': 329901.12903225806,
-    'tau': 1/30,
-    't_max': 150,
-    'I': 2700,
-    'r_kill': 50,
-    'alpha_max': 20,
-    'speed_change_alpha': 86,
-    'xi': 0.1,
-    'am': 3,
-    'dny': 1,
-    'init_conditions': {'V_0': 25, 'Q_0': 75, 'pos_0': None}
-}
-
-
-# In[3]:
+# In[ ]:
 
 
 class Missile(object):
@@ -386,7 +361,7 @@ class Missile(object):
             target {object} -- ссылка на цель. Обязательно должен иметь два свойства: pos->np.ndarray и vel->np.ndarray. 
                                Эти свойства аналогичны свойствам этого класса. pos возвращает координату цели, vel -- скорость
         
-        returns {float} -- [-1; 1] аналог action'a, только не int, а float. Если умножить его на self.alphamax, то получится
+        returns: {float} -- [-1; 1] аналог action'a, только не int, а float. Если умножить его на self.alphamax, то получится
                            потребный угол атаки для обеспечения метода параллельного сближения
         """
 
@@ -443,15 +418,13 @@ class Missile(object):
     
     def get_parameters_of_missile_to_meeting_target(self, trg_pos, trg_vel, missile_vel_abs, missile_pos=None):
         """
-        Возвращает состояние ракеты, которая нацелена на мгновенную точку встречи с целью
-        arguments:
-            trg_vel {tuple/list/np.ndarray} -- вектор скорости цели
-            trg_pos {tuple/list/np.ndarray} -- положение цели
-            my_vel_abs {float} -- средняя скорость ракеты
-        keyword arguments:
-            my_pos {tuple/list/np.ndarray} -- начальное положение ракеты, если не указано, то (0,0) (default: {None})
-        returns:
-            [np.ndarray] -- [v, x, y, Q, alpha, t]
+        Метод, возвращающий состояние ракеты, которая нацелена на мгновенную точку встречи с целью
+        arguments: trg_vel {tuple/list/np.ndarray} -- вектор скорости цели
+                   trg_pos {tuple/list/np.ndarray} -- положение цели
+                   my_vel_abs {float} -- средняя скорость ракеты
+        keyword arguments: my_pos {tuple/list/np.ndarray} -- начальное положение ракеты, если не указано,
+                                                             то (0,0) (default: {None})
+        returns: [np.ndarray] -- [v, x, y, Q, alpha, t]
         """
         trg_vel = np.array(trg_vel)
         trg_pos = np.array(trg_pos)
@@ -512,183 +485,4 @@ class Missile(object):
             'Cx': self.Cx_itr(self.alpha, self.M), 
             'Cya': self.Cya_itr(self.M)
         } 
-
-
-# In[4]:
-
-
-class Target(object):
-       
-    @classmethod
-    def get_simple_target(cls, pos, vel):
-        velocity_vectors = [[0, np.array(vel)]]
-        vel_interp = InterpVec(velocity_vectors)
-        target = cls(vel_interp=vel_interp)
-        parameters_of_target = np.array([pos[0], pos[1], 0])
-        target.set_init_cond(parameters_of_target=parameters_of_target)
-        return target
-
-    @staticmethod
-    def get_standart_parameters_of_target():
-        return np.array([20, 1000, 0]) 
-
-    def __init__(self, *args, **kwargs):
-        self.g   = kwargs.get('g', 9.80665)
-        self.dt  = kwargs.get('dt', 0.001)
-        self.vel_interp = kwargs['vel_interp']
-
-    def set_init_cond(self, parameters_of_target=None):
-        if parameters_of_target is None:
-            parameters_of_target = self.get_standart_parameters_of_target()
-        self.state = np.array(parameters_of_target)
-        self.state_0 = np.array(parameters_of_target)
-
-    def reset(self):
-        self.set_state(self.state_0)
-
-    def set_state(self, state):
-        self.state = np.array(state)
-
-    def get_state(self):
-        return self.state
-    
-    def get_state_0(self):
-        return self.state_0
-
-    def step(self, tau):
-        x, y, t = self.state
-        t_end = t + tau
-        flag = True
-        while flag:
-            if t_end - t > self.dt:
-                dt = self.dt 
-            else:
-                dt = t_end - t
-                flag = False
-            t += dt
-            vx, vy = self.vel_interp(t)
-            x += vx * dt 
-            y += vy * dt
-        self.set_state([x, y, t])
-
-    @property
-    def pos(self):
-        return self.state[:2]
-    
-    @property
-    def vel(self):
-        return self.vel_interp(self.t)
-
-    @property
-    def t(self):
-        return self.state[-1]
-    
-    @property
-    def Q(self):
-        vx, vy = self.vel_interp(self.t)
-        return np.sqrt(vx ** 2 + vy ** 2)
-
-    @property
-    def v(self):
-        vx, vy = self.vel, -10
-        return np.sqrt(vx ** 2 + vy ** 2)
-
-    @property
-    def x(self):
-        return self.pos[0]
-
-    @property
-    def y(self):
-        return self.pos[1]
-
-    def get_summary(self):
-        return { 
-            't': self.t,
-            'v': self.v,
-            'x': self.x,
-            'y': self.y,
-            'Q': np.degrees(self.Q)
-        }
-
-
-# In[5]:
-
-
-t = Target.get_simple_target([3e3, 6e3], [-250, 0])
-
-
-# In[6]:
-
-
-m = Missile.get_missile(opts)
-
-
-# In[7]:
-
-
-# m.P_itr.plot()
-
-
-# In[8]:
-
-
-# m.Cya_itr.plot()
-
-
-# In[9]:
-
-
-# m.set_init_cond()
-
-
-# In[10]:
-
-
-# def distance(missile, target, r_kill=opts['r_kill']):
-#     r = np.sqrt((target[-1]['x'] - missile[-1]['x'])**2 + (target[-1]['y'] - missile[-1]['y'])**2)
-#     return (True, r) if r <= r_kill else (False, r)
-
-
-# In[40]:
-
-
-# summaries_m = [m.get_summary()]
-# summaries_t = [t.get_summary()]
-# tau = 0.1
-# r = distance(summaries_m, summaries_t)
-# while r[0] == False:
-#     k = m.get_action_parallel_guidance(t)
-#     act = m.action_sample() * k
-#     m.step(act, tau)
-#     t.step(tau)
-#     summaries_m.append(m.get_summary())
-#     summaries_t.append(t.get_summary())
-#     r = distance(summaries_m, summaries_t)
-#     print(r[1])
-
-
-# In[41]:
-
-
-# ts = [s['t'] for s in summaries_m]
-# xs_m = [s['x'] for s in summaries_m]
-# ys_m = [s['y'] for s in summaries_m]
-# xs_t = [s['x'] for s in summaries_t]
-# ys_t = [s['y'] for s in summaries_t]
-
-
-# In[42]:
-
-
-# plt.figure(dpi=100)
-# plt.plot(xs_m, ys_m)
-# plt.plot(xs_t, ys_t)
-# plt.grid()
-# plt.show()
-
-
-# In[ ]:
-
-
-
 
