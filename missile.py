@@ -385,7 +385,7 @@ class Missile(object):
         nya = v * dQ_dt / self.g + np.cos(Q) + dny
         alpha_req = (nya * m * self.g) / (Cya * ro * v ** 2 / 2 * self.S_m * (1 + self.xi) + P / 57.3)
 
-        return alpha_req / self.alphamax
+        return alpha_req / self.alpha_max
     
     def step(self, action, tau):
         """
