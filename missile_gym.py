@@ -16,7 +16,7 @@ class MissileGym(object):
         mparams = missile.get_parameters_of_missile_to_meeting_target(target.pos, target.vel, missile_vel_abs, missile_pos)
         missile.set_init_cond(parameters_of_missile=mparams)
         suc, meeting_point = missile.get_instant_meeting_point(target.pos, target.vel, missile_vel_abs, missile_pos if missile_pos is not None else (0,0))
-        print(f''suc, meeting_point)
+        print(f'meet: {suc}; meeting point: {meeting_point}')
         print(mparams)
         return cls(missile=missile, target=target, t_max=missile_opts.get('t_max'), tau=missile_opts.get('tau', 1/30))
 

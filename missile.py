@@ -250,6 +250,34 @@ class Missile(object):
     @property
     def Cx(self):
         return self.Cx_itr(self.alpha, self.M)       
+    
+    def step(self, action, tau):
+        """
+        Метод моделирования динамики ракеты за шаг по времени tau. На протяжении tau управляющее воздействие на ракету постоянно (action)
+        Меняет внутреннее состояние ракеты state на момент окончания шага
+        arguments: action {int} -- управляющее воздействие на протяжении шага
+                   tau {float}  -- длина шага по времени (не путать с шагом интегрирования)
+        """
+        self.alpha_targeting = self.alpha_max * action
+
+        y = self.validate_y(self.state[:-1])
+        t = self.state[-1]  
+        t_end = t + tau
+
+        flag = True
+        while flag:
+            if t_end - t > self.dt:
+                dt = self.dt 
+            else:
+                dt = t_end - t
+                flag = False
+            k1 = self.f_system(t, y)
+            k2 = self.f_system(t + 0.5 * dt, self.validate_y(y + 0.5 * dt * k1))
+            k3 = self.f_system(t + 0.5 * dt, self.validate_y(y + 0.5 * dt * k2))
+            k4 = self.f_system(t + dt, self.validate_y(y + dt * k3))
+            t += dt
+            y  = self.validate_y(y + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4))
+        self.set_state(np.append(y, t))
         
     def f_system(self, t, y):
         """
@@ -280,7 +308,7 @@ class Missile(object):
             dalpha = -self.speed_change_alpha
 
         return np.array([
-            (P * np.cos(np.radians(alpha)) - ro * v ** 2 / 2 * self.S_m * Cx - m * self.g * np.sin(Q)) / m,
+            (P * np.cos(np.radians(alpha)) - rho * v ** 2 / 2 * self.S_m * Cx - m * self.g * np.sin(Q)) / m,
             v * np.cos(Q),
             v * np.sin(Q),
             (alpha * ( Cya * rho * v ** 2 / 2 * self.S_m * (1 + self.xi) + P / 57.3) / ( m * self.g ) - np.cos(Q)) * self.g / v,
@@ -308,12 +336,9 @@ class Missile(object):
     def get_action_parallel_guidance(self, target):
         """
         Метод, возвращающий аналог action'a, соответствующий идельному методу параллельного сближения
-        
-        Arguments: target {object} -- ссылка на цель. Обязательно должен иметь два свойства: pos->np.ndarray и vel->np.ndarray. 
-                                 Эти свойства аналогичны свойствам этого класса. 
-                                 pos возвращает координату цели, vel -- скорость
-        
-        returns: {float}           -- [-1; 1] аналог action'a, только не int, а float. Если умножить его на self.alpha_max,
+        arguments: target {object} -- ссылка на цель. Обязательно должен иметь два свойства: pos->np.ndarray и vel->np.ndarray. 
+                                      Эти свойства аналогичны свойствам этого класса. pos возвращает координату цели, vel -- скорость
+        returns: {float}           -- [-1; 1] action. Если умножить его на self.alpha_max, 
                                       то получится потребный угол атаки для обеспечения метода параллельного сближения
         """
         am  = self.am
@@ -351,13 +376,10 @@ class Missile(object):
     def get_action_chaise_guidance(self, target, t_corr=1/30, dny=1):
         """
         Метод, возвращающий аналог action'a, соответствующий идельному методу чистой погони
-        
-        Arguments:
-            target {object} -- ссылка на цель. Обязательно должен иметь два свойства: pos->np.ndarray и vel->np.ndarray. 
-                               Эти свойства аналогичны свойствам этого класса. pos возвращает координату цели, vel -- скорость
-        
-        returns: {float} -- [-1; 1] аналог action'a, только не int, а float. Если умножить его на self.alphamax, то получится
-                           потребный угол атаки для обеспечения метода параллельного сближения
+        arguments: target {object} -- ссылка на цель. Обязательно должен иметь два свойства: pos->np.ndarray и vel->np.ndarray. 
+                                      Эти свойства аналогичны свойствам этого класса: pos возвращает координату цели, vel - скорость
+        returns: {float}           -- [-1; 1] аналог action'a, только не int, а float. Если умножить его на self.alphamax, то получится
+                                      потребный угол атаки для обеспечения метода параллельного сближения
         """
 
         xc, yc = target.pos
@@ -365,60 +387,30 @@ class Missile(object):
         vc = target.v
 
         v, x, y, Q, alpha, t = self.state
-        P = self.P_itr(t)
-        m = self.m_itr(t)
-        ro  = self.atm_itr(y, 3)
+        P   = self.P_itr(t)
+        m   = self.m_itr(t)
+        rho = self.atm_itr(y, 3)
         a   = self.atm_itr(y, 4)
-        M = v/a
+        M   = v/a
         Cya = self.Cya_itr(M)
 
-        vis = target.pos + vc*t_corr - self.pos
+        vis = target.pos + vc * t_corr - self.pos
         fi2 = np.arctan2(vis[1], vis[0])
         fi1 = Q
 
-        dQ_dt = (fi2-fi1)/t_corr
+        dQ_dt = (fi2 - fi1) / t_corr
         nya = v * dQ_dt / self.g + np.cos(Q) + dny
-        alpha_req = (nya * m * self.g) / (Cya * ro * v ** 2 / 2 * self.S_m * (1 + self.xi) + P / 57.3)
+        alpha_req = (nya * m * self.g) / (Cya * rho * v ** 2 / 2 * self.S_m * (1 + self.xi) + P / 57.3)
 
         return alpha_req / self.alpha_max
-    
-    def step(self, action, tau):
-        """
-        Моделирует динамику ракеты за шаг по времени tau. 
-        На протяжении tau управляющее воздействие на ракету постоянно (action)
-        Меняет внутреннее состояние ракеты на момент окончания шага
-        arguments: action {int} -- управляющее воздействие на протяжении шага
-                   tau {float}  -- длина шага по времени (не путать с шагом интегрирования)
-        """
-        self.alpha_targeting = self.alpha_max * action
-
-        y = self.validate_y(self.state[:-1])
-        t = self.state[-1]  
-        t_end = t + tau
-
-        flag = True
-        while flag:
-            if t_end - t > self.dt:
-                dt = self.dt 
-            else:
-                dt = t_end - t
-                flag = False
-            k1 = self.f_system(t, y)
-            k2 = self.f_system(t + 0.5 * dt, self.validate_y(y + 0.5 * dt * k1))
-            k3 = self.f_system(t + 0.5 * dt, self.validate_y(y + 0.5 * dt * k2))
-            k4 = self.f_system(t + dt, self.validate_y(y + dt * k3))
-            t += dt
-            y  = self.validate_y(y + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4))
-        self.set_state(np.append(y, t))
-    
+       
     def get_parameters_of_missile_to_meeting_target(self, trg_pos, trg_vel, missile_vel_abs, missile_pos=None):
         """
         Метод, возвращающий состояние ракеты, которая нацелена на мгновенную точку встречи с целью
         arguments: trg_vel {tuple/list/np.ndarray} -- вектор скорости цели
                    trg_pos {tuple/list/np.ndarray} -- положение цели
-                   my_vel_abs {float} -- средняя скорость ракеты
-        keyword arguments: my_pos {tuple/list/np.ndarray} -- начальное положение ракеты, если не указано,
-                                                             то (0,0) (default: {None})
+                   my_vel_abs {float}              -- средняя скорость ракеты
+        keyword arguments: my_pos {tuple/list/np.ndarray} -- начальное положение ракеты, если не указано, то (0,0) (default: {None})
         returns: [np.ndarray] -- [v, x, y, Q, alpha, t]
         """
         trg_vel = np.array(trg_vel)
@@ -461,11 +453,13 @@ class Missile(object):
             return False, trg_pos
 
         t = np.linalg.norm(vis) / np.linalg.norm(vel_close)
+        
         return True, trg_pos + trg_vel * t
     
     def get_summary(self):
         """
-        Возвращает словарь с основными текущими параметрами и характеристиками ракеты в данный момент
+        Метод возвращающий словарь с основными текущими параметрами и характеристиками ракеты в данный момент
+        returns: {dict}
         """
         return { 
             't': self.t,
