@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[ ]:
-
-
 import random as rd
 import numpy as np
 import pandas as pd
@@ -11,26 +5,31 @@ from math import *
 from aero_info import table_atm
 from interpolation import Interp1d, Interp2d, InterpVec
 
-
-# In[ ]:
-
-
 class Missile(object):
     
     def __init__(self, **kwargs):
         """
         Конструктор класса Missile:
-         dny        -- запас по перегрузке
+         g          -- ускорение свободного падения [м / с^2] {default: 9.80665}
+         dt         -- шаг интегрирования системы ОДУ движения ракеты [с] {default: 0.001}
+         dny        -- запас по перегрузке [ед.] {default: 1}
          am         -- коэф-т, характеризующий быстроту реакции ракеты на манёвр цели
-         m_itr      -- масса [кг] ракеты от времени [с]
-         P_itr      -- тяга [Н] ракеты от времени [с]
          S_m        -- площадь миделя [м^2] (к которой относятся АД коэффициенты)
+         r_kill     -- радиус поражения боевой части ракеты [м]
          alpha_max  -- максимальный угол атаки [градусы]
          speed_change_alpha -- скорость изменения угола атаки [градусы / с]
          xi         -- коэффициент, характеризующий структуру подъёмной силы аэродинамической схемы ракеты
-         Cx_itr     -- интерполятор определения коэффициента лобового сопротивления ракеты
-                       от угла атаки [градусы] и от числа маха 
+         Cx_itr     -- интерполятор определения коэффициента лобового сопротивления ракеты от угла атаки [градусы] и от числа Маха
+         Cya_itr    -- интерполятор определения производной коэффициента подъемной силы ракеты по углам атаки от числа Маха
+         m_itr      -- масса [кг] ракеты от времени [с]
+         P_itr      -- тяга [Н] ракеты от времени [с]
          atm_itr    -- интерполятор параметров атмосферы
+         t_0        -- начальное время интегрирования [c] {default: 0.0}
+         V_0        -- начальная скорость полета ракеты (скорость выброса) [м / с] {default: 0.0}
+         x_0        -- начальное положение ракеты по координате x [м] {default: 0.0}
+         y_0        -- начальное положение ракеты по координате y [м] {default: 0.0}
+         Q_0        -- начальное положение ракеты по углу склонения к горизонту в положительном направлении оси x [град] {default: 0.0}
+         alpha_0    -- начальный угол атаки набегающего потока [град] {default: 0.0}
         """
         self.dt   = kwargs['dt']
         self.g    = kwargs['g']
@@ -57,8 +56,7 @@ class Missile(object):
     @classmethod
     def get_missile(cls, dict_opts):
         """
-        Классовый метод создания стандартной ракеты со всеми необходимыми аэродинамическими, массо-
-        и тяговременными характеристиками
+        Классовый метод создания ракеты со всеми необходимыми аэродинамическими, массо- и тяговременными характеристиками
         arguments: dict_opts {dict} -- словарь с параметрами проектируемой ракеты
         returns:   экземпляр класса Missile {cls}
         """
@@ -79,12 +77,12 @@ class Missile(object):
         
         dt      = dict_opts.get('dt', 0.001)
         g       = dict_opts.get('g', 9.80665)
-        V_0     = dict_opts['init_conditions'].get('V_0', 0)
-        x_0     = dict_opts['init_conditions'].get('x_0', 0)
-        y_0     = dict_opts['init_conditions'].get('y_0', 0)
-        Q_0     = dict_opts['init_conditions'].get('Q_0', 0)
-        alpha_0 = dict_opts['init_conditions'].get('alpha_0', 0)
-        t_0     = dict_opts['init_conditions'].get('t_0', 0)
+        V_0     = dict_opts['init_conditions'].get('V_0', 0.0)
+        x_0     = dict_opts['init_conditions'].get('x_0', 0.0)
+        y_0     = dict_opts['init_conditions'].get('y_0', 0.0)
+        Q_0     = dict_opts['init_conditions'].get('Q_0', 0.0)
+        alpha_0 = dict_opts['init_conditions'].get('alpha_0', 0.0)
+        t_0     = dict_opts['init_conditions'].get('t_0', 0.0)
         am      = dict_opts.get('am')
         dny     = dict_opts.get('dny', 1)
         d       = dict_opts.get('d')
@@ -141,7 +139,7 @@ class Missile(object):
 
     def get_standart_parameters_of_missile(self):
         """
-        Возвращает стандартное начальное состояние ракеты
+        Метод, возвращающий начальное состояние ракеты
         returns: {np.ndarray} -- [v,   x, y,       Q,   alpha, t]
                                  [м/с, м, м, радианы, градусы, с]
         """
@@ -149,9 +147,10 @@ class Missile(object):
         
     def set_init_cond(self, parameters_of_missile=None):
         """
-        Задает начальные параметры (положение, скорость, углы ...) и запоминает их для того,
-        чтобы потом в них можно было вернуться при помощи reset()
-        arguments: parameters_of_missile 
+        Метод, задающий начальные параметры (положение, скорость, углы ...)
+        arguments: parameters_of_missile {list / np.ndarray}
+                   [v,   x, y,       Q,   alpha, t]
+                   [м/с, м, м, радианы, градусы, c]
         """
         if parameters_of_missile is None:
             parameters_of_missile = self.get_standart_parameters_of_missile()
@@ -160,20 +159,24 @@ class Missile(object):
 
     def reset(self):
         """
-        Возвращает ракету в начальное состояние
+        Метод, устанавливающий ракету в начальное состояние state_0
         """
         self.set_state(self.state_0)
 
     def get_state(self):
         """
         Метод получения вектора со всеми параметрами системы 
-        (схож с вектором 'y' при интегрировании ode, но в векторе state еще должно быть t)
         returns: {np.ndarray} -- [v,   x, y, Q,       alpha,   t]
                                  [м/с, м, м, радианы, градусы, с]
         """
         return self.state
     
     def get_state_0(self):
+        """
+        Метод получения вектора со всеми параметрами системы в начальном состоянии
+        returns: {np.ndarray} -- [v,   x, y, Q,       alpha,   t]
+                                 [м/с, м, м, радианы, градусы, с]
+        """
         return self.state_0
 
     def set_state(self, state):
@@ -185,31 +188,18 @@ class Missile(object):
         self.state = np.array(state)
 
     @property
-    def action_space(self):
-        """
-        Возвращает int'овый numpy-массив, элементы которого являются возможными действиями агента
-        """
-        return np.array([-1, 0, 1])
-
-    def action_sample(self):
-        """
-        Возвращает случайное возможное действие (int)
-        """
-        return rd.randint(-1, 1)
-
-    @property
     def pos(self):
         """
-        Свойство, возвращающее текущее положение ц.м. ракеты в виде numpy массива из двух элементов 
-        np.array([x,y])
+        Свойство, возвращающее текущее положение ц.м. ракеты
+        returns: np.array([x, y])
         """
         return np.array([self.state[1], self.state[2]])
 
     @property
     def vel(self):
         """
-        Свойство, возвращающее текущий вектор скорости ракеты в виде numpy массива из двух элементов 
-        np.array([Vx, Vy])
+        Свойство, возвращающее текущий вектор скорости ракеты
+        returns: np.array([Vx, Vy])
         """
         v = self.state[0]
         Q = self.state[3]
@@ -218,8 +208,8 @@ class Missile(object):
     @property
     def x_axis(self):
         """
-        Свойство, возвращающее текущий нормированный вектор центральной оси ракеты в виде numpy массива из двух элементов 
-        np.array([Axi_x, Axi_y])
+        Свойство, возвращающее текущий нормированный вектор центральной оси ракеты
+        returns: np.array([Axi_x, Axi_y])
         """
         Q = self.Q
         alpha = np.radians(self.alpha)
@@ -266,29 +256,34 @@ class Missile(object):
         Функция правой части системы ОДУ динамики ракеты
         arguments: t {float}      -- время
                    y {np.ndarray} -- вектор состояния системы 
-                                 [v,   x, y, Q,       alpha   ]
-                                 [м/с, м, м, радианы, градусы ]                        
-        returns: {np.ndarray} -- dy/dt
-                                 [dv,    dx,  dy,  dQ,        dalpha   ]
-                                 [м/с^2, м/c, м/c, радианы/c, градусы/c]
+                                     [v,   x, y, Q,       alpha   ]
+                                     [м/с, м, м, радианы, градусы ]                        
+        returns: {np.ndarray}     -- dy/dt
+                                     [dv,    dx,  dy,  dQ,        dalpha   ]
+                                     [м/с^2, м/c, м/c, радианы/c, градусы/c]
         """
         v, x, y, Q, alpha = y
         P   = self.P_itr(t)
         m   = self.m_itr(t)
-        ro  = self.atm_itr(y, 3)
+        rho = self.atm_itr(y, 3)
         a   = self.atm_itr(y, 4)
         M   = v / a
         Cya = self.Cya_itr(M) 
         Cx  = self.Cx_itr(alpha, M)
 
         alpha_diff = self.alpha_targeting - alpha
-        dalpha = 0                       if abs(alpha_diff) < 1e-6 else                  self.speed_change_alpha if alpha_diff > 0 else                 -self.speed_change_alpha  
+        if abs(alpha_diff) < 1e-6:
+            dalpha = 0
+        elif alpha_diff > 0:
+            dalpha = self.speed_change_alpha
+        else:
+            dalpha = -self.speed_change_alpha
 
         return np.array([
             (P * np.cos(np.radians(alpha)) - ro * v ** 2 / 2 * self.S_m * Cx - m * self.g * np.sin(Q)) / m,
             v * np.cos(Q),
             v * np.sin(Q),
-            (alpha * ( Cya * ro * v ** 2 / 2 * self.S_m * (1 + self.xi) + P / 57.3) / ( m * self.g ) - np.cos(Q)) * self.g / v,
+            (alpha * ( Cya * rho * v ** 2 / 2 * self.S_m * (1 + self.xi) + P / 57.3) / ( m * self.g ) - np.cos(Q)) * self.g / v,
             dalpha
             ], copy = False) 
 
