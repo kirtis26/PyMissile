@@ -4,4 +4,4 @@
 
 Мат. модель: https://github.com/TovarnovM/neuro_missile
 
-![image](https://user-images.githubusercontent.com/70746078/117160609-ecee3d00-adc9-11eb-902c-43693d74443b.png)
+![image](https://user-images.githubusercontent.com/70746078/117541707-c58fae00-b01d-11eb-90d2-aec0aa4e66cd.png)
