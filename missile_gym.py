@@ -2,6 +2,7 @@ import numpy as np
 from missile import Missile
 from target import Target
 from interpolation import Interp1d
+from math import *
 
 class MissileGym(object):
 
@@ -129,6 +130,18 @@ class MissileGym(object):
 #         maxis  = self.missile.x_axis
 #         maxis1 = maxis / np.linalg.norm(maxis)
         return mvel @ vis_n < 1
+
+    @staticmethod
+    def get_overload(vel0, vel1, tau):
+        g = 9.80665
+        vel0 = np.array(vel0)
+        vel1 = np.array(vel1)
+        a = (vel1 - vel0) / tau - np.array([0, -g])
+        a_tau = np.dot(a, vel0/np.linalg.norm(vel0)) * vel0/np.linalg.norm(vel0)
+        a_n = a - a_tau
+        n_y = copysign(np.linalg.norm(a_n)/g, np.cross(vel0, a_n))
+        n_x = copysign(np.linalg.norm(a_tau)/g, np.dot(a_tau, vel0))
+        return np.array([n_x, n_y])
 
     @staticmethod
     def _r1(mpos0, tpos0, mpos1, tpos1, r_kill):
