@@ -2,6 +2,6 @@
 
 Аэродинамика и баллистика ЗУР "бескрылой"  схемы с одноступенчатой, однорежимной ДУ
 
-Мат. модель: https://github.com/TovarnovM/neuro_missile
-
-![image](https://user-images.githubusercontent.com/70746078/117541707-c58fae00-b01d-11eb-90d2-aec0aa4e66cd.png)
+Исходная мат. модель: https://github.com/TovarnovM/neuro_missile
+----------------------------------------------------------------
+![image](https://user-images.githubusercontent.com/70746078/117541848-86159180-b01e-11eb-8d95-b1e8c5557efc.png)
