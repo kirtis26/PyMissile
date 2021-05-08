@@ -7,6 +7,14 @@ class MissileGym(object):
 
     @classmethod
     def make_simple_scenario(cls, missile_opts, target_pos, target_vel):
+        """
+        Классовый метод создания простого сценария движения цели, в котором происходит инициилизация
+        объектов Missile и Target, начальных параметров наведения ракеты на цель.
+        arguments: missile_opts {dict} -- словарь с опциями ракеты
+                   target_pos {tuple/list/np.ndarray} -- положение цели
+                   target_vel {tuple/np.ndarray} -- скорость цели
+        returns: {cls}
+        """
         trg_pos = np.array(target_pos)
         trg_vel = np.array(target_vel)
         target  = Target.get_simple_target(trg_pos, trg_vel)
@@ -17,7 +25,6 @@ class MissileGym(object):
         missile.set_init_cond(parameters_of_missile=mparams)
         suc, meeting_point = missile.get_instant_meeting_point(target.pos, target.vel, missile_vel_abs, missile_pos if missile_pos is not None else (0,0))
         print(f'meet: {suc}; meeting point: {meeting_point}')
-        print(mparams)
         return cls(missile=missile, target=target, t_max=missile_opts.get('t_max'), tau=missile_opts.get('tau', 1/30))
 
     def __init__(self, *args, **kwargs):
@@ -51,18 +58,34 @@ class MissileGym(object):
         obs = self.get_observation()
         mpos1, tpos1 = self.missile.pos, self.target.pos
         mvel1, tvel1 = self.missile.vel, self.target.vel
-        done, info = self.get_reward_done_info(mpos0, tpos0, mpos1, tpos1, tvel1, mvel1)
+        done, info = self.get_info_about_step(mpos0, tpos0, mpos1, tpos1, tvel1, mvel1)
         return obs, done, info
 
     def step_with_guidance(self):
-        if self.missile.P_itr(self.missile.t) != 0:
-            action_guidance = self.missile.get_action_parallel_guidance(self.target)
-        else:
+        """
+        Метод, моделирующий шаг step по времени tau в зависимости от метода наведения.
+        Пропорциональное сближение на активном участке и на пассивном, когда скорость ракеты больше скорости цели в 2 раза
+        Метод чистой погони на пассивном участке, когда скорость ракеты менее чем в 2 раза превышает скорость цели, либо меньше её
+        returns: {(np.array, bool, dict)} -- состояние окружения, флаг окончания моделирования, информация (причина, время, расстояние,...)
+        """
+        if self.missile.P_itr(self.missile.t) > 0:
+            action_guidance = self.missile.get_action_proportional_guidance(self.target)
+        elif (self.target.v / self.missile.v) <= 0.5:
+            action_guidance = self.missile.get_action_proportional_guidance(self.target)
+        elif (self.target.v / self.missile.v) >= 0.5:
             action_guidance = self.missile.get_action_chaise_guidance(self.target)
+            
         obs, done, info = self.step(action_guidance)
         return obs, done, info
 
-    def get_reward_done_info(self, mpos0, tpos0, mpos1, tpos1, tvel1, mvel1):
+    def get_info_about_step(self, mpos0, tpos0, mpos1, tpos1, tvel1, mvel1):
+        """
+        Метод, проверяющий условия остановки шага по времени метода step
+        arguments: mpos0, tpos0 -- положение ракеты и цели на текущем шаге по времени tau
+                   mpos1, tpos1 -- положение ракеты и цели на следующем шаге по времени tau
+                   mvel1, tvel1 -- скорость ракеты и цели на следующем шаге по времени tau
+        returns: {(bool, dict)} -- флаг окончания моделирования, информация (причина, время, расстояние,...)
+        """
         info = {}
         if mpos1[1] < 0:
             info['done_reason'] = 'missile fell'
@@ -82,6 +105,10 @@ class MissileGym(object):
             info['done_reason'] = 'a long time to fly'
             info['t'] = self.missile.t
             return True, info
+        if self.missile.t > 20 and self.missile.v < 340:
+            info['done_reason'] = 'velocity is small'
+            info['t'] = self.missile.t
+            return True, info
         return False, {'done_reason': 'unknown'}
 
     def is_hit(self, mpos0, tpos0, mpos1, tpos1):
@@ -98,10 +125,10 @@ class MissileGym(object):
         if d < 300:
             return False
         vis_n /= d
-        mvel1  = mvel / np.linalg.norm(mvel)
-        maxis  = self.missile.x_axis
-        maxis1 = maxis / np.linalg.norm(maxis)
-        return maxis1 @ vis_n < np.cos(40) # или тут поставить единичный вектор скорости mvel1
+#         mvel1  = mvel / np.linalg.norm(mvel)
+#         maxis  = self.missile.x_axis
+#         maxis1 = maxis / np.linalg.norm(maxis)
+        return mvel @ vis_n < 1
 
     @staticmethod
     def _r1(mpos0, tpos0, mpos1, tpos1, r_kill):
@@ -141,7 +168,15 @@ class MissileGym(object):
         mis_state = self.missile.get_state()
         trg_state = self.target.get_state()
         return np.concatenate([mis_state, trg_state, self.prev_observation])
-
+    
+    def get_aero_constants(self):
+        """
+        Метод, вычисляющий аэродинамические коэффициенты ракеты в текущем состоянии state
+        returns: {dict}
+        """
+        mis_state = self.missile.get_state()
+        return self.missile.get_aero_constants(mis_state)
+    
     def get_etta(self, miss=None, target=None):
         """
         Метод, вычисляющий угол между осью ракеты и линией визирования
@@ -182,9 +217,8 @@ class MissileGym(object):
 
     @property
     def observation_current_raw_space_high(self):
-        return np.array([self.t_max, 180.0, 2200, 180, self.missile.alpha_max])
+        return np.array([self.t_max, 180.0, 2300, 180, self.missile.alpha_max])
 
     @property
     def observation_current_raw_space_low(self):
         return np.array([0, -180.0, 0, -180, -self.missile.alpha_max])
-

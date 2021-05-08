@@ -1,16 +1,6 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import numpy as np
 from math import *
 from interpolation import InterpVec
-
-
-# In[2]:
-
 
 class Target(object):
        
@@ -85,7 +75,7 @@ class Target(object):
 
     @property
     def v(self):
-        vx, vy = self.vel, -10
+        vx, vy = self.vel_interp(self.t)
         return np.sqrt(vx ** 2 + vy ** 2)
 
     @property
@@ -104,4 +94,3 @@ class Target(object):
             'y': self.y,
             'Q': np.degrees(self.Q)
         }
-
