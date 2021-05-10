@@ -510,6 +510,49 @@ class Missile(object):
                 y[3] -= 2*pi
         return y
 
+    def get_action_alignment_guidance(self, target, guid_pos=(0,0), guid_vel=(0,0), tau=1/30):
+        """
+        Метод, возвращающий аналог action'a, соответствующий методу совмещения ("трех точек")
+        arguments: target {object} -- ссылка на цель. Обязательно должен иметь два свойства: pos->np.ndarray и vel->np.ndarray. 
+                                      Эти свойства аналогичны свойствам этого класса: pos возвращает координату цели, vel - скорость
+        returns: {float}           -- [-1; 1] аналог action'a, только не int, а float. Если умножить его на self.alphamax, то получится
+                                      потребный угол атаки для обеспечения метода параллельного сближения
+        """
+        am = self.am
+        dny = self.dny
+        
+        xc, yc = target.pos
+        Qc = target.Q
+        vc = target.v
+        
+        guid_pos = np.array(guid_pos)
+#         guid_vel = np.array(guid_vel)
+        
+        v, x, y, Q, alpha, t = self.state
+        
+        P   = self.P_itr(t)
+        m   = self.m_itr(t)
+        rho = self.atm_itr(y, 3)
+        a   = self.atm_itr(y, 4)
+        M   = v / a
+        Cya = self.Cya_itr(M)
+
+        vis = target.pos - guid_pos
+        fi = np.arctan2(vis[1], vis[0])
+        r_mis = self.pos - guid_pos
+        r_trg = target.pos - self.pos 
+        
+        peleng = np.arcsin((vc / v) * (np.linalg.norm(r_mis) / np.linalg.norm(r_trg)) * np.sin(fi))
+        Q2 = peleng + fi
+        Q1 = Q
+        
+        dQ_dt = (Q2 - Q1) / tau
+        
+        nya = v * dQ_dt / self.g + np.cos(Q) + dny
+        alpha_req = (nya * m * self.g) / (Cya * rho * v ** 2 / 2 * self.S_m * (1 + self.xi) + P / 57.3)
+
+        return alpha_req / self.alpha_max
+
     def get_action_proportional_guidance(self, target):
         """
         Метод, возвращающий аналог action'a, соответствующий методу пропорциональной навигации
@@ -550,7 +593,7 @@ class Missile(object):
 
         return alpha_req / self.alpha_max
 
-    def get_action_chaise_guidance(self, target, t_corr=1/30, dny=1):
+    def get_action_chaise_guidance(self, target, t_corr=1/30):
         """
         Метод, возвращающий аналог action'a, соответствующий идельному методу чистой погони
         arguments: target {object} -- ссылка на цель. Обязательно должен иметь два свойства: pos->np.ndarray и vel->np.ndarray. 
@@ -844,7 +887,8 @@ class Missile(object):
             'm': self.m_itr(self.t),
             'P': self.P_itr(self.t),
             'alpha': self.alpha,
-            'alpha_targeting': self. alpha_targeting,
+            'alpha_targeting': self.alpha_targeting,
             'Cx': self.Cx_itr(self.alpha, self.M), 
             'Cya': self.Cya_itr(self.M)
         } 
+
