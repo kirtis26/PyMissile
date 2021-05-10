@@ -97,7 +97,7 @@ class MissileGym(object):
             info['done_reason'] = 'target destroyed'
             info['t'] = self.missile.t
             return True, info
-        if self.is_wrong_way(mpos1, mvel1, tpos1):
+        if self.is_wrong_way(mpos1, mvel1, tpos1) and self.missile.P_itr(self.missile.t) == 0:
             info['done_reason'] = 'wrong way'
             info['t'] = self.missile.t
             info['distance_to_target'] = np.linalg.norm(mpos1 - tpos1)

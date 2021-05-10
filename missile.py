@@ -540,7 +540,7 @@ class Missile(object):
         vis = target.pos - guid_pos
         fi = np.arctan2(vis[1], vis[0])
         r_mis = self.pos - guid_pos
-        r_trg = target.pos - self.pos 
+        r_trg = target.pos - guid_pos
         
         peleng = np.arcsin((vc / v) * (np.linalg.norm(r_mis) / np.linalg.norm(r_trg)) * np.sin(fi))
         Q2 = peleng + fi
@@ -638,7 +638,7 @@ class Missile(object):
         missile_pos = np.array(missile_pos) if missile_pos else np.array([0, 0])
         suc, meeting_point = self.get_instant_meeting_point(trg_pos, trg_vel, missile_vel_abs, missile_pos)
         vis = meeting_point - missile_pos
-        Q = np.arctan2(vis[1], vis[0])
+        Q = np.radians(self.Q_0) # np.arctan2(vis[1], vis[0])
         return np.array([self.V_0, missile_pos[0], missile_pos[1], Q, self.alpha_0, self.t_0])
     
     @staticmethod
@@ -891,4 +891,3 @@ class Missile(object):
             'Cx': self.Cx_itr(self.alpha, self.M), 
             'Cya': self.Cya_itr(self.M)
         } 
-
