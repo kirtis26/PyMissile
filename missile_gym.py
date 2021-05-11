@@ -71,6 +71,7 @@ class MissileGym(object):
         """
         if self.missile.P_itr(self.missile.t) > 0:
             action_guidance = self.missile.get_action_proportional_guidance(self.target)
+#             action_guidance = self.missile.get_action_alignment_guidance(self.target, tau=self.tau)
         elif (self.target.v / self.missile.v) <= 0.5:
             action_guidance = self.missile.get_action_proportional_guidance(self.target)
         elif (self.target.v / self.missile.v) >= 0.5:

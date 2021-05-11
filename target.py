@@ -13,10 +13,6 @@ class Target(object):
         target.set_init_cond(parameters_of_target=parameters_of_target)
         return target
 
-    @staticmethod
-    def get_standart_parameters_of_target():
-        return np.array([20, 1000, 0]) 
-
     def __init__(self, *args, **kwargs):
         self.g   = kwargs.get('g', 9.80665)
         self.dt  = kwargs.get('dt', 0.001)

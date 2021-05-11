@@ -601,7 +601,8 @@ class Missile(object):
         returns: {float}           -- [-1; 1] аналог action'a, только не int, а float. Если умножить его на self.alphamax, то получится
                                       потребный угол атаки для обеспечения метода параллельного сближения
         """
-
+        dny = self.dny
+        
         xc, yc = target.pos
         Qc = target.Q
         vc = target.v
@@ -891,3 +892,4 @@ class Missile(object):
             'Cx': self.Cx_itr(self.alpha, self.M), 
             'Cya': self.Cya_itr(self.M)
         } 
+
