@@ -17,7 +17,6 @@ class Missile(object):
          S_m        -- площадь миделя [м^2] (к которой относятся АД коэффициенты)
          r_kill     -- радиус поражения боевой части ракеты [м]
          alpha_max  -- максимальный угол атаки [градусы]
-         speed_change_alpha -- скорость изменения угола атаки [градусы / с]
          xi         -- коэффициент, характеризующий структуру подъёмной силы аэродинамической схемы ракеты
          Cx_itr     -- интерполятор определения коэффициента лобового сопротивления ракеты от угла атаки [градусы] и от числа Маха
          Cya_itr    -- интерполятор определения производной коэффициента подъемной силы ракеты по углам атаки от числа Маха
@@ -51,7 +50,6 @@ class Missile(object):
         self.r_kill  = kwargs['r_kill']
         self.alpha_0 = kwargs['alpha_0']
         self.alpha_max          = kwargs['alpha_max']
-        self.speed_change_alpha = kwargs['speed_change_alpha']
         self.alpha_targeting    = 0    
         
         self.a  = kwargs['a']
@@ -158,7 +156,6 @@ class Missile(object):
         r_kill  = dict_opts['r_kill']
         xi      = dict_opts['xi']
         alpha_max = dict_opts['alpha_max']
-        speed_change_alpha = dict_opts.get('speed_change_alpha')
         
         a  = dict_opts['a']
         x_ct_0       = dict_opts['x_ct_0']
@@ -256,7 +253,6 @@ class Missile(object):
             P_itr    = P_itr,
             x_ct_itr = x_ct_itr,
             alpha_max = alpha_max,
-            speed_change_alpha = speed_change_alpha,
             xi       = xi,  
             Cx_itr   = Cx_itr,
             atm_itr  = table_atm,
@@ -451,7 +447,7 @@ class Missile(object):
             k1 = self.f_system(t, y)
             k2 = self.f_system(t + 0.5 * dt, self.validate_y(y + 0.5 * dt * k1))
             k3 = self.f_system(t + 0.5 * dt, self.validate_y(y + 0.5 * dt * k2))
-            k4 = self.f_system(t + dt, self.validate_y(y + dt * k3))
+            k4 = self.f_system(t + dt,       self.validate_y(y + dt * k3))
             t += dt
             y  = self.validate_y(y + dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4))
         self.set_state(np.append(y, t))
@@ -477,19 +473,13 @@ class Missile(object):
         Cx  = self.Cx_itr(alpha, M)
 
         alpha_diff = self.alpha_targeting - alpha
-        if abs(alpha_diff) < 1e-6:
-            dalpha = 0
-        elif alpha_diff > 0:
-            dalpha = self.speed_change_alpha
-        else:
-            dalpha = -self.speed_change_alpha
 
         return np.array([
             (P * np.cos(np.radians(alpha)) - rho * v ** 2 / 2 * self.S_m * Cx - m * self.g * np.sin(Q)) / m,
             v * np.cos(Q),
             v * np.sin(Q),
             (alpha * ( Cya * rho * v ** 2 / 2 * self.S_m * (1 + self.xi) + P / 57.3) / ( m * self.g ) - np.cos(Q)) * self.g / v,
-            dalpha
+            alpha_diff
             ], copy = False) 
 
     def validate_y(self, y):
@@ -553,15 +543,15 @@ class Missile(object):
 
         return alpha_req / self.alpha_max
 
-    def get_action_proportional_guidance(self, target):
+    def get_action_proportional_guidance(self, target, a=None):
         """
         Метод, возвращающий аналог action'a, соответствующий методу пропорциональной навигации
         arguments: target {object} -- ссылка на цель. Обязательно должен иметь два свойства: pos->np.ndarray и vel->np.ndarray. 
                                       pos возвращает координату цели, vel -- скорость
         returns: {float}           -- [-1; 1] action. Если умножить его на self.alpha_max, 
-                                      то получится потребный угол атаки для обеспечения метода параллельного сближения
+                                      то получится потребный угол атаки для обеспечения метода пропорционального сближения
         """
-        am  = self.am
+        am  = self.am if a == None else a
         dny = self.dny
 
         xc, yc = target.pos
@@ -639,7 +629,7 @@ class Missile(object):
         missile_pos = np.array(missile_pos) if missile_pos else np.array([0, 0])
         suc, meeting_point = self.get_instant_meeting_point(trg_pos, trg_vel, missile_vel_abs, missile_pos)
         vis = meeting_point - missile_pos
-        Q = np.arctan2(vis[1], vis[0]) # np.radians(self.Q_0)
+        Q = np.arctan2(vis[1], vis[0])
         return np.array([self.V_0, missile_pos[0], missile_pos[1], Q, self.alpha_0, self.t_0])
     
     @staticmethod
