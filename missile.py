@@ -630,8 +630,8 @@ class Missile(object):
         Метод, возвращающий состояние ракеты, которая нацелена на мгновенную точку встречи с целью
         arguments: trg_vel {tuple/list/np.ndarray} -- вектор скорости цели
                    trg_pos {tuple/list/np.ndarray} -- положение цели
-                   my_vel_abs {float}              -- средняя скорость ракеты
-        keyword arguments: my_pos {tuple/list/np.ndarray} -- начальное положение ракеты, если не указано, то (0,0) (default: {None})
+                   missile_vel_abs {float}         -- средняя скорость ракеты
+        keyword arguments: missile_pos {tuple/list/np.ndarray} -- начальное положение ракеты, если не указано, то (0,0) (default: {None})
         returns: [np.ndarray] -- [v, x, y, Q, alpha, t]
         """
         trg_vel = np.array(trg_vel)
@@ -639,7 +639,7 @@ class Missile(object):
         missile_pos = np.array(missile_pos) if missile_pos else np.array([0, 0])
         suc, meeting_point = self.get_instant_meeting_point(trg_pos, trg_vel, missile_vel_abs, missile_pos)
         vis = meeting_point - missile_pos
-        Q = np.radians(self.Q_0) # np.arctan2(vis[1], vis[0])
+        Q = np.arctan2(vis[1], vis[0]) # np.radians(self.Q_0)
         return np.array([self.V_0, missile_pos[0], missile_pos[1], Q, self.alpha_0, self.t_0])
     
     @staticmethod
