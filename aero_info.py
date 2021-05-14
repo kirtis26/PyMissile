@@ -1,15 +1,5 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[1]:
-
-
 import numpy as np
 import pandas as pd
-
-
-# In[2]:
-
 
 def Cy_alpha_nos_cil(parametr, *args):
     """
@@ -34,10 +24,6 @@ def Cy_alpha_nos_cil(parametr, *args):
     else:
         print('Неправильно задан parametr')
 
-
-# In[3]:
-
-
 def Cy_alpha_iz_kr(*args):
     """
     Функция расчёта производной коэффициента подъемной силы изолированного крыла (оперения)
@@ -49,10 +35,6 @@ def Cy_alpha_iz_kr(*args):
     arg3 = args[2]
     arg4 = args[3]
     return table_3_5(arg1, arg2, arg3, arg4)
-
-
-# In[4]:
-
 
 def F_iz_kr(*args):
     """
@@ -66,10 +48,6 @@ def F_iz_kr(*args):
     nu_k = args[3]
     return table_5_8(M, lambd_k, tan_05, nu_k)
 
-
-# In[5]:
-
-
 def F_iz_korp(*args): 
     """
     Функция расчёта центра давления изолированного корпуса
@@ -81,10 +59,6 @@ def F_iz_korp(*args):
     lambd_korp = args[2]
     l_nos = args[3]
     return table_5_7(M, lambd_nos, lambd_korp, l_nos)
-
-
-# In[6]:
-
 
 def Cx_волн(*args):
     """
@@ -99,12 +73,6 @@ def Cx_волн(*args):
     c_ = args[4]
     return table_4_30(M, nu_k, lambd_k, tan_05x, c_)
 
-
-# # Доп. функции
-
-# In[7]:
-
-
 def interpol(*args):
 
     tab1 = args[0]
@@ -113,10 +81,6 @@ def interpol(*args):
 
     return tab2 + (tab1 - tab2) * proc
 
-
-# In[8]:
-
-
 def procent(*args):
 
     var1 = args[0]
@@ -124,12 +88,6 @@ def procent(*args):
     tab2 = args[2]
 
     return (var1 - tab1) / (tab2 - tab1)
-
-
-# # Параметры атмосферы
-
-# In[9]:
-
 
 def table_atm(h, parametr):
     """
@@ -181,12 +139,6 @@ def table_atm(h, parametr):
     else:
         print("Ошибка: неверное значение при выборе параметра")
 
-
-# # Функции аэродинамического сопротивления
-
-# In[32]:
-
-
 def Cx43(Mah):
     
     """
@@ -201,12 +153,6 @@ def Cx43(Mah):
     table_cx = table['cx']
     
     return np.interp(Mah, table_mah, table_cx)
-
-
-# # Интерполяция графиков из Лебедева Чернобровкина
-
-# In[5]:
-
 
 def table_3_2(M, lambd_nos, lambd_cil):
     """
@@ -252,10 +198,6 @@ def table_3_2(M, lambd_nos, lambd_cil):
         cy1 = np.interp(arg, args, cy1iz_alf_4)
     return cy1
 
-
-# In[1]:
-
-
 def table_3_3(M, lambd_nos, lambd_cil):
     """
     Функция для вывода Су для оживальной ГЧ
@@ -296,10 +238,6 @@ def table_3_3(M, lambd_nos, lambd_cil):
         cy1 = np.interp(razmm, razm, cy1iz_alf_4)
     return cy1
 
-
-# In[6]:
-
-
 def table_3_4(M, krit, lambd_cil):
     """
     Функция для вывода Су плоской и сферической ГЧ
@@ -324,10 +262,6 @@ def table_3_4(M, krit, lambd_cil):
         cy1 = np.interp(razmm, razm, cy1iz_cil)
 
     return cy1
-
-
-# In[11]:
-
 
 def table_3_5(M, lambd_k, c_, tg_khi_05):
 
@@ -579,10 +513,6 @@ def table_3_5(M, lambd_k, c_, tg_khi_05):
 
     return cy1 * lambd_k
 
-
-# In[ ]:
-
-
 def table_3_21(Mach, lambd):
 
     """
@@ -595,7 +525,9 @@ def table_3_21(Mach, lambd):
     x_t_4 = [0.640, 0.768, 0.845, 0.900, 0.933, 0.950, 0.970, 0.980, 0.986, 0.990, 0.995, 1.000, 1.000]
     x_t_5 = [0.540, 0.650, 0.750, 0.835, 0.885, 0.920, 0.940, 0.960, 0.970, 0.980, 0.987, 0.992, 1.000]
     lambd_tab = [0.6, 0.8, 1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4, 2.6, 2.8, 3]
-
+    
+    if lambd > 3:
+        lambd = 3
     k = int(lambd // 0.2 - 2)
 
     if Mach <= 2:
@@ -617,10 +549,6 @@ def table_3_21(Mach, lambd):
         k_t = interpol(x_t_5[k], x_t_5[k - 1], procent(lambd, lambd_tab[k - 1], lambd_tab[k]))
 
     return k_t
-
-
-# In[14]:
-
 
 def tab_3_22(mah, x_):
 
@@ -668,10 +596,6 @@ def tab_3_22(mah, x_):
         k_t = interpol(k_t_10[k], k_t_10[k - 1], procent(mah, mah_tab[k - 1], mah_tab[k]))
 
     return k_t
-
-
-# In[1]:
-
 
 def table_5_7(*args):
 
@@ -729,10 +653,6 @@ def table_5_7(*args):
         dx = interpol(dx_4[k], dx_4[k - 1], procent(razmm, razm[k - 1], razm[k]))
 
     return dx * l_nos
-
-
-# In[ ]:
-
 
 def table_5_8(mah, lambd_k, tan_05, nu_k):
     """
@@ -934,30 +854,6 @@ def table_5_8(mah, lambd_k, tan_05, nu_k):
 
     return x_f
 
-
-# In[ ]:
-
-
-# def tab_5_9(*args):
-
-#     mah = args[0]
-#     lambd_k = args[1]
-#     c_ = args[2]
-
-#     x_f_025 = []
-#     x_f_050 = []
-#     x_f_075 = []
-#     x_f_100 = []
-#     x_f_125 = []
-#     x_f_150 = [0.21, 0.225, 0.21, 0.225, 0.35]
-#     x_f_185 = [0.21, 0.21, 0.21, 0.25, 0.2, 0.325, 0.37, 0.38, 0.39, 0.4]
-
-#     razm = [-3.5, -3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1]
-
-
-# In[ ]:
-
-
 def table_5_11(d_, l_k):
     """
     Определение расстояния между фокусом изолированного крыла и точкой приложения дополнительной нормальной силы консоли
@@ -976,15 +872,7 @@ def table_5_11(d_, l_k):
 
     return interpol(f1[k], f1[k - 1], procent(d_, d_tab[k - 1], d_tab[k])) * l_k / 2
 
-
-# In[1]:
-
-
 import math as kk
-
-
-# In[ ]:
-
 
 def table_4_2(*args):
     """
@@ -1076,10 +964,6 @@ def table_4_2(*args):
 
     return d_cf
 
-
-# In[ ]:
-
-
 def table_4_3(Mach, x_t):
 
     """
@@ -1129,10 +1013,6 @@ def table_4_3(Mach, x_t):
 
     return nu_m
 
-
-# In[ ]:
-
-
 def table_4_5(mah, re_, cla, l_t):
     """
     Вывод критического числа Рейнольдса при шероховатой поверхности тела
@@ -1180,10 +1060,6 @@ def table_4_5(mah, re_, cla, l_t):
         re_t = interpol(re_5[k], re_5[k - 1], procent(razmm, razm[k - 1], razm[k]))
 
     return re_t
-
-
-# In[ ]:
-
 
 def table_4_11(mah, lambd):
 
@@ -1249,10 +1125,6 @@ def table_4_11(mah, lambd):
 
     return cx_nos
 
-
-# In[ ]:
-
-
 def table_4_13(mah, lambd):
     """
     Вывод значения Сх носовой части с эллиптической образующей
@@ -1301,10 +1173,6 @@ def table_4_13(mah, lambd):
         cx_nos = interpol(cx_nos_200[k], cx_nos_200[k - 1], procent(mah, mah_tab[k - 1], mah_tab[k]))
 
     return cx_nos
-
-
-# In[ ]:
-
 
 def table_4_24(mah, nu_korm, lambd):
     """
@@ -1437,10 +1305,6 @@ def table_4_24(mah, nu_korm, lambd):
 
     return cx_korm
 
-
-# In[ ]:
-
-
 def table_4_28(x_t, c_):
     """
     Вывод поправочного коэффициента, учитывающего влияние толщины профиля
@@ -1470,10 +1334,6 @@ def table_4_28(x_t, c_):
         nu_t = interpol(nu_t_04[k], nu_t_04[k - 1], procent(c_, c_mas[k - 1], c_mas[k]))
 
     return nu_t
-
-
-# In[ ]:
-
 
 def table_4_30(mah, nu_k, lambd_k, tan_05x, c_):
     """
@@ -1845,10 +1705,6 @@ def table_4_30(mah, nu_k, lambd_k, tan_05x, c_):
 
     return cx_v * lambd_k * c_ ** 2
 
-
-# In[ ]:
-
-
 def table_4_32(mah, tan_x ):
 
     """
@@ -1869,11 +1725,7 @@ def table_4_32(mah, tan_x ):
             k = 10
         fi = interpol(fi_tab[k], fi_tab[k - 1], procent(razmm, razm[k - 1], razm[k]))
         return fi
-
-
-# In[ ]:
-
-
+    
 def tab_4_40(mah, lambd_nos, param):
 
     """
@@ -1901,10 +1753,6 @@ def tab_4_40(mah, lambd_nos, param):
 
     return ksi
 
-
-# In[ ]:
-
-
 def table_int_ver(*args):
 
     """
@@ -1931,10 +1779,6 @@ def table_int_ver(*args):
 
     return interpol(F_x[k], F_x[k - 1], procent(x, xx[k - 1], xx[k]))
 
-
-# In[ ]:
-
-
 def table_p_dno_(Mach, oper = True):
     """
     Ф-ция для вывода коэф-та донного давления для тел вращения без суживающийся части
@@ -1955,10 +1799,6 @@ def table_p_dno_(Mach, oper = True):
         ordinata = interpol(ords_bez_oper[k], ords_bez_oper[k - 1], procent(Mach, args[k - 1], args[k]))
         
     return ordinata
-
-
-# In[ ]:
-
 
 def table_k_nu(nu_korm, lambd_korm, Mach):
     """
@@ -1994,3 +1834,103 @@ def table_k_nu(nu_korm, lambd_korm, Mach):
         
     return ordinata
 
+def table_5_15(nu_k, lambd_k, tg_khi_05, Mach):
+    """
+    График для определения вращательной производной изолированных крыльев при x_t_ = 0.5
+    """
+    args    = [0, 0.5, 1, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5]
+    ords_0  = [-8.5, -8, -7.5, -6.9, -6.5, -6, -5.8, -5.6, -5.5, -5.4, -5.3, -5.2, -5.1, -5.05, -5.01, -5.0]
+    ords_1  = [-10.0, -9.5, -8.9, -8.2, -7.9, -7.2, -6.9, -6.9, -6.9, -6.9, -6.9, -6.9, -6.9, -6.9, -6.9, -6.9]
+    ords_2  = [-10.9, -10.4, -9.8, -9.1, -8.8, -8.1, -7.8, -7.5, -7.3, -7.3, -7.3, -7.3, -7.3, -7.3, -7.3, -7.3]
+    ords_3  = [-13.8, -13.0, -12.7, -12.0, -11.2, -10.6, -10.0, -9.5, -9.1, -8.9, -8.7, -8.7, -8.7, -8.7, -8.7, -8.7]
+    ords_4  = [-17.0, -16.5, -16.0, -15.8, -15.2, -14.7, -14.0, -13.4, -12.7, -12.0, -11.4, -11.0, -10.5, -10.5, -10.5, -10.5]
+    ords_5  = [-20.5, -20.3, -20.1, -19.9, -19.4, -18.9, -18.3, -17.8, -17.0, -16.0, -15.2, -14.5, -13.8, -13.0, -12.8, -12.8]
+    
+    if Mach >= 1:
+        arg = lambd_k * np.sqrt(Mach**2 - 1)
+    else:
+        arg = lambd_k * np.sqrt(1 - Mach**2)
+    ordin = lambd_k * tg_khi_05
+    
+    if arg > 7.5:
+        arg = 7.5
+    k = int(arg // 0.5)
+    
+    if ordin > 5.0:
+        ordin = 5.0
+    
+    if nu_k == np.inf:
+        if ordin == 1.0:
+            mz_wz_cya_iz_kr = interpol(ords_1[k], ords_1[k - 1], procent(arg, args[k - 1], args[k]))
+        elif 1.0 <= ordin <= 2.0:
+            mz_wz_cya_iz_kr = interpol(interpol(ords_2[k], ords_2[k - 1], procent(arg, args[k - 1], args[k])),
+                                       interpol(ords_1[k], ords_1[k - 1], procent(arg, args[k - 1], args[k])),
+                                       procent(ordin, 1.0, 2.0))
+        elif 2.0 <= ordin <= 3.0:
+            mz_wz_cya_iz_kr = interpol(interpol(ords_3[k], ords_3[k - 1], procent(arg, args[k - 1], args[k])),
+                                       interpol(ords_2[k], ords_2[k - 1], procent(arg, args[k - 1], args[k])),
+                                       procent(ordin, 2.0, 3.0))    
+        elif 3.0 <= ordin <= 4.0:
+            mz_wz_cya_iz_kr = interpol(interpol(ords_4[k], ords_4[k - 1], procent(arg, args[k - 1], args[k])),
+                                       interpol(ords_3[k], ords_3[k - 1], procent(arg, args[k - 1], args[k])),
+                                       procent(ordin, 3.0, 4.0))
+        elif 4.0 <= ordin <= 5.0:
+            mz_wz_cya_iz_kr = interpol(interpol(ords_5[k], ords_5[k - 1], procent(arg, args[k - 1], args[k])),
+                                       interpol(ords_4[k], ords_4[k - 1], procent(arg, args[k - 1], args[k])),
+                                       procent(ordin, 4.0, 5.0))
+        else:
+            mz_wz_cya_iz_kr = interpol(ords_5[k], ords_5[k - 1], procent(arg, args[k - 1], args[k]))          
+    elif nu_k == 1:
+        mz_wz_cya_iz_kr = interpol(ords_0[k], ords_0[k - 1], procent(arg, args[k - 1], args[k]))   
+    else:
+        mz_wz_cya_iz_kr = interpol(interpol(ords_1[k], ords_1[k - 1], procent(arg, args[k - 1], args[k])),
+                                   interpol(ords_0[k], ords_0[k - 1], procent(arg, args[k - 1], args[k])),
+                                   procent(nu_k, 1.0, 100.0))
+    return mz_wz_cya_iz_kr
+
+def table_5_16(lambd_k, tg_khi_05, Mach):
+    """
+    График для определения коэф-та В1 для крыльев с заостренными концами
+    """
+    args    = [0, 0.5, 1, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0]
+    ords_1  = [20.0, 16.0, 12.0, 7.0, 3.0, 0.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0, -2.0]
+    ords_2  = [28.0, 24.0, 20.0, 16.0, 12.0, 7.5, 4.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    ords_3  = [32.0, 30.0, 27.0, 23.0, 19.0, 14.5, 11.0, 8.0, 5.0, 3.8, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    ords_4  = [39.0, 37.0, 34.0, 30.0, 26.0, 22.0, 18.5, 15.0, 12.0, 9.0, 7.3, 6.0, 4.8, 4.8, 4.8, 4.8, 4.8]
+    ords_5  = [47.0, 45.0, 42.0, 38.0, 34.0, 30.0, 26.0, 22.5, 19.5, 16.5, 14.0, 11.8, 9.8, 8.0, 6.8, 6.8, 6.8]
+    
+    if Mach >= 1:
+        arg = lambd_k * np.sqrt(Mach**2 - 1)
+    else:
+        arg = lambd_k * np.sqrt(1 - Mach**2)
+    ordin = lambd_k * tg_khi_05
+    
+    if arg > 8.0:
+        arg = 8.0
+    k = int(arg // 0.5)
+    
+    if ordin > 5.0:
+        ordin = 5.0
+    
+    if ordin == 1.0:
+        B1 = interpol(ords_1[k], ords_1[k - 1], procent(arg, args[k - 1], args[k]))
+    elif 1.0 <= ordin <= 2.0:
+        B1 = interpol(interpol(ords_2[k], ords_2[k - 1], procent(arg, args[k - 1], args[k])),
+                               interpol(ords_1[k], ords_1[k - 1], procent(arg, args[k - 1], args[k])),
+                               procent(ordin, 1.0, 2.0))
+    elif 2.0 <= ordin <= 3.0:
+        B1 = interpol(interpol(ords_3[k], ords_3[k - 1], procent(arg, args[k - 1], args[k])),
+                               interpol(ords_2[k], ords_2[k - 1], procent(arg, args[k - 1], args[k])),
+                               procent(ordin, 2.0, 3.0))    
+    elif 3.0 <= ordin <= 4.0:
+        B1 = interpol(interpol(ords_4[k], ords_4[k - 1], procent(arg, args[k - 1], args[k])),
+                               interpol(ords_3[k], ords_3[k - 1], procent(arg, args[k - 1], args[k])),
+                               procent(ordin, 3.0, 4.0))
+    elif 4.0 <= ordin <= 5.0:
+        B1 = interpol(interpol(ords_5[k], ords_5[k - 1], procent(arg, args[k - 1], args[k])),
+                               interpol(ords_4[k], ords_4[k - 1], procent(arg, args[k - 1], args[k])),
+                               procent(ordin, 4.0, 5.0))
+    else:
+        B1 = interpol(ords_5[k], ords_5[k - 1], procent(arg, args[k - 1], args[k]))          
+  
+    return B1

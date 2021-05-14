@@ -12,7 +12,7 @@ class Missile(object):
         Конструктор класса Missile:
          g          -- ускорение свободного падения [м / с^2] {default: 9.80665}
          dt         -- шаг интегрирования системы ОДУ движения ракеты [с] {default: 0.001}
-         dny        -- запас по перегрузке [ед.] {default: 1}
+         dny        -- запас по перегрузке [ед.] {defaultb_0_oper: 1}
          am         -- коэф-т, характеризующий быстроту реакции ракеты на манёвр цели
          S_m        -- площадь миделя [м^2] (к которой относятся АД коэффициенты)
          r_kill     -- радиус поражения боевой части ракеты [м]
@@ -182,7 +182,7 @@ class Missile(object):
         
         # вычисление геометрии корпуса
         d_kon1 = d - 2 * np.tan(np.radians(betta_kon2)) * L_kon2
-        L_nos = L_kon1
+        L_nos = L_kon1 + L_kon2
         d_kon1 = d - 2 * np.tan(np.radians(betta_kon2)) * L_kon2
         betta_kon1 = (d_kon1 / 2) / L_kon1
         S_kon1 = np.pi * d_kon1**2 / 4
@@ -781,7 +781,7 @@ class Missile(object):
     
     
         # Центр давления корпуса
-        delta_x_f = F_iz_korp(Mach, self.lambd_nos, self.lambd_korp, self.L_nos)
+        delta_x_f = F_iz_korp(Mach, self.lambd_nos, self.lambd_cil, self.L_nos)
         x_fa_nos_cil = self.L_nos - self.W_nos / self.S_mid + delta_x_f
         x_fa_korm = self.L_korp - 0.5 * self.L_korm   
         x_fa_korp = 1 / Cy_alpha_korp * (Cy_alpha_nos * x_fa_nos_cil + Cy_alpha_korm * x_fa_korm)
@@ -820,15 +820,18 @@ class Missile(object):
         m_z_wz_korp = - 2 * (1 - x_ct / self.L_korp + (x_ct / self.L_korp) ** 2 - x_c_ob / self.L_korp)
 
         x_ct_oper_ = (x_ct - self.x_b_a_oper) / self.b_a_oper
-        m_z_wz_oper = -57.3 * (Cy_alpha_oper * (x_ct_oper_ - 1 / 2)**2 * K_aa_oper)
 
-        m_z_wz = m_z_wz_korp * (self.S_mid / self.S_mid) * (self.L_korp / self.L_korp)**2 + m_z_wz_oper * (self.S_oper / self.S_mid) * (self.b_a_oper / self.L_korp) * np.sqrt(K_t_oper)
+        mz_wz_cya_iz_kr = table_5_15(self.nu_oper, self.lambd_oper, self.tg_khi_05_oper, Mach)
+        B1 = table_5_16(self.lambd_oper, self.tg_khi_05_oper, Mach)
+        m_z_wz_oper = (mz_wz_cya_iz_kr - B1 * (1 / 2 - x_ct_oper_) - 57.3 * (1 / 2 - x_ct_oper_)**2) * K_aa_oper * Cy_alpha_k_oper
+
+        m_z_wz = m_z_wz_korp * (self.S_mid / self.S_mid) * (self.L_korp / self.L_korp)**2 + m_z_wz_oper * (self.S_oper / self.S_mid) * (self.b_a_oper / self.L_korp)**2 * np.sqrt(K_t_oper)
     
 
         # Балансировочная зависимость
-        M_z_delt_oper = Сy_delt_oper * (x_ct - x_fd_oper) / self.L_korp
+        M_z_delt = Сy_delt_oper * (x_ct - x_fd_oper) / self.L_korp
         M_z_alpha = Cy_alpha * (x_ct - x_fa) / self.L_korp
-        ballans_relation = - (M_z_alpha / M_z_delt_oper)
+        ballans_relation = - (M_z_alpha / M_z_delt)
 
     
         # Запас статической устойчивости
@@ -861,7 +864,7 @@ class Missile(object):
             'm_z_wz_oper': m_z_wz_oper,
             'ballans_relation': ballans_relation,
             'M_z_alpha': M_z_alpha,
-            'M_z_delt_oper': M_z_delt_oper
+            'M_z_delt': M_z_delt
         }
     
     def get_summary(self):
