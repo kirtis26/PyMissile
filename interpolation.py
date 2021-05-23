@@ -4,6 +4,11 @@ from matplotlib import cm
 import scipy.interpolate as interp
 from mpl_toolkits.mplot3d import Axes3D
 
+rc = {"font.family" : "serif", 
+      "mathtext.fontset" : "stix"}
+plt.rcParams.update(rc)
+plt.rcParams["font.serif"] = ["Times New Roman"] + plt.rcParams["font.serif"]
+
 class Interp1d(object):
     """
     Класс, превращающий набор точек (x,f) в непрерывную функцию f(x), путем 
@@ -30,12 +35,14 @@ class Interp1d(object):
         """
         return np.interp(x, self.mx, self.mf)
     
-    def plot(self):
+    def plot(self, ylabel='y', xlabel='x',):
         """
         Визуализация интерполируемых данных
         """
         fig = plt.figure(dpi=100)
         plt.plot(self.mx, self.mf, 'k')
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
         plt.show()
 
 class Interp2d(object):
@@ -58,11 +65,11 @@ class Interp2d(object):
         else:
             raise AttributeError(f'Данные разных размеростей: x{mass_x.shape}; y{mass_y.shape}; f{mass_f.shape}')
         
-    def plot(self):
+    def plot(self, ylabel='y', xlabel='x', zlabel='z'):
         """
         Визуализация интерполируемых данных
         """
-        fig = plt.figure(dpi=100)
+        fig = plt.figure(dpi=150)
         ax = fig.gca(projection='3d')
         X, Y = np.meshgrid(self.mx, self.my)
         Z = np.zeros_like(X)
@@ -70,7 +77,9 @@ class Interp2d(object):
             for j in range(X.shape[1]):
                 Z[i,j] = self(X[i,j], Y[i,j])
         surf = ax.plot_surface(X, Y, Z, cmap=cm.RdYlBu_r, linewidth=0, antialiased=False)
-        fig.colorbar(surf, shrink=0.5, aspect=5)
+        fig.colorbar(surf, label=zlabel, shrink=0.5, aspect=5)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
         plt.show()
 
     def plot2d(self):
