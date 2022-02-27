@@ -1,7 +1,6 @@
 import numpy as np
-from missile import Missile
+from missile import Missile2D
 from target import Target
-from interpolation import Interp1d
 from math import *
 
 class MissileGym(object):
@@ -18,22 +17,22 @@ class MissileGym(object):
         """
         trg_pos = np.array(target_pos)
         trg_vel = np.array(target_vel)
-        target  = Target.get_simple_target(trg_pos, trg_vel)
-        missile_vel_abs = missile_opts['vel_abs']
-        missile_pos = missile_opts['init_conditions'].get('pos_0', None)
-        missile = Missile.get_missile(missile_opts)
-        mparams = missile.get_parameters_of_missile_to_meeting_target(target.pos, target.vel, missile_vel_abs, missile_pos)
-        missile.set_init_cond(parameters_of_missile=mparams)
-        suc, meeting_point = missile.get_instant_meeting_point(target.pos, target.vel, missile_vel_abs, missile_pos if missile_pos is not None else (0,0))
+        target = Target.get_simple_target(trg_pos, trg_vel)
+        mis_vel_abs = missile_opts['vel_abs']
+        mis_pos = missile_opts['init_conditions'].get('pos_0', None)
+        missile = Missile2D.get_missile(missile_opts)
+        mis_params = missile.get_parameters_of_missile_to_meeting_target(target.pos, target.vel, mis_vel_abs, mis_pos)
+        missile.set_init_cond(parameters_of_missile=mis_params)
+        suc, meeting_point = missile.get_instant_meeting_point(target.pos, target.vel, mis_vel_abs, mis_pos if mis_pos is not None else (0,0))
         print(f'meet: {suc}; meeting point: {meeting_point}')
         return cls(missile=missile, target=target, t_max=missile_opts.get('t_max'), tau=missile_opts.get('tau', 1/30))
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         self.point_solution = np.array([])
         self.missile = kwargs['missile']
-        self.target  = kwargs['target']
-        self.tau     = kwargs['tau'] 
-        self.t_max   = kwargs['t_max']
+        self.target = kwargs['target']
+        self.tau = kwargs['tau']
+        self.t_max = kwargs['t_max']
         self._miss_state_len = self.missile.get_state().shape[0]
         self._trg_state_len = self.target.get_state().shape[0]
         self.prev_observation = self.get_current_observation()
@@ -59,7 +58,7 @@ class MissileGym(object):
         obs = self.get_observation()
         mpos1, tpos1 = self.missile.pos, self.target.pos
         mvel1, tvel1 = self.missile.vel, self.target.vel
-        done, info = self.get_info_about_step(mpos0, tpos0, mpos1, tpos1, tvel1, mvel1)
+        done, info = self.get_info_about_step(mpos0, tpos0, mpos1, tpos1, mvel1)
         return obs, done, info
 
     def step_with_guidance(self):
@@ -74,13 +73,13 @@ class MissileGym(object):
 #             action_guidance = self.missile.get_action_alignment_guidance(self.target, tau=self.tau)
         elif (self.target.v / self.missile.v) <= 0.5:
             action_guidance = self.missile.get_action_proportional_guidance(self.target)
-        elif (self.target.v / self.missile.v) >= 0.5:
+        else:
             action_guidance = self.missile.get_action_chaise_guidance(self.target)
             
         obs, done, info = self.step(action_guidance)
         return obs, done, info
 
-    def get_info_about_step(self, mpos0, tpos0, mpos1, tpos1, tvel1, mvel1):
+    def get_info_about_step(self, mpos0, tpos0, mpos1, tpos1, mvel1):
         """
         Метод, проверяющий условия остановки шага по времени метода step
         arguments: mpos0, tpos0 -- положение ракеты и цели на текущем шаге по времени tau

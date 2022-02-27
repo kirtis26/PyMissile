@@ -1,5 +1,4 @@
 import numpy as np
-from math import *
 from interpolation import InterpVec
 
 class Target(object):
@@ -13,19 +12,21 @@ class Target(object):
         target.set_init_cond(parameters_of_target=parameters_of_target)
         return target
 
-    def __init__(self, *args, **kwargs):
-        self.g   = kwargs.get('g', 9.80665)
-        self.dt  = kwargs.get('dt', 0.001)
+    def __init__(self, **kwargs):
+        self.g = kwargs.get('g', 9.80665)
+        self.dt = kwargs.get('dt', 0.001)
+        self.state = None
+        self.state_init = None
         self.vel_interp = kwargs['vel_interp']
 
     def set_init_cond(self, parameters_of_target=None):
         if parameters_of_target is None:
-            parameters_of_target = self.get_standart_parameters_of_target()
+            parameters_of_target = self.get_init_parameters()
         self.state = np.array(parameters_of_target)
-        self.state_0 = np.array(parameters_of_target)
+        self.state_init = np.array(parameters_of_target)
 
     def reset(self):
-        self.set_state(self.state_0)
+        self.set_state(self.state_init)
 
     def set_state(self, state):
         self.state = np.array(state)
@@ -33,8 +34,8 @@ class Target(object):
     def get_state(self):
         return self.state
     
-    def get_state_0(self):
-        return self.state_0
+    def get_state_init(self):
+        return self.state_init
 
     def step(self, tau):
         x, y, t = self.state
