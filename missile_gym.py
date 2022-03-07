@@ -2,7 +2,6 @@ import numpy as np
 from missile import Missile2D
 from target import Target2D
 from math import *
-from IPython.display import clear_output
 
 
 class MissileGym(object):
