@@ -1,29 +1,33 @@
 import numpy as np
 from interpolation import InterpVec
 
-class Target(object):
+
+class Target2D(object):
        
     @classmethod
     def get_simple_target(cls, pos, vel):
         velocity_vectors = [[0, np.array(vel)]]
         vel_interp = InterpVec(velocity_vectors)
-        target = cls(vel_interp=vel_interp)
-        parameters_of_target = np.array([pos[0], pos[1], 0])
-        target.set_init_cond(parameters_of_target=parameters_of_target)
+        parameters = np.array([pos[0], pos[1], 0])
+        target = cls(vel_interp=vel_interp,
+                     state_init=parameters)
+        target.set_init_cond(parameters=parameters)
         return target
 
     def __init__(self, **kwargs):
         self.g = kwargs.get('g', 9.80665)
-        self.dt = kwargs.get('dt', 0.001)
         self.state = None
-        self.state_init = None
+        self.state_init = kwargs['state_init']
         self.vel_interp = kwargs['vel_interp']
 
-    def set_init_cond(self, parameters_of_target=None):
-        if parameters_of_target is None:
-            parameters_of_target = self.get_init_parameters()
-        self.state = np.array(parameters_of_target)
-        self.state_init = np.array(parameters_of_target)
+    def set_init_cond(self, parameters=None):
+        if parameters is None:
+            parameters = self.get_init_parameters()
+        self.state = np.array(parameters)
+        self.state_init = np.array(parameters)
+
+    def get_init_parameters(self):
+        return self.state_init
 
     def reset(self):
         self.set_state(self.state_init)
@@ -37,13 +41,13 @@ class Target(object):
     def get_state_init(self):
         return self.state_init
 
-    def step(self, tau):
+    def step(self, tau=0.1, dtn=0.01):
         x, y, t = self.state
         t_end = t + tau
         flag = True
         while flag:
-            if t_end - t > self.dt:
-                dt = self.dt 
+            if t_end - t > dtn:
+                dt = dtn
             else:
                 dt = t_end - t
                 flag = False

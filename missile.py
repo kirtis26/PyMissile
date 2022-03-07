@@ -7,7 +7,6 @@ class Missile2D(object):
 
     def __init__(self, **kwargs):
 
-        self.dt = kwargs['dt']
         self.g = kwargs['g']
 
         self.V_0 = kwargs['V_0']
@@ -84,7 +83,6 @@ class Missile2D(object):
             else:
                 return 0
 
-        dt = opts.get('dt', 0.001)
         g = opts.get('g', 9.80665)
 
         V_0 = opts['init_conditions'].get('V_0', 0.0)
@@ -124,7 +122,6 @@ class Missile2D(object):
         Cya_itr = Interp1d(arr_mach, arr_cya)
 
         missile = cls(
-            dt=dt,
             g=g,
             V_0=V_0,
             x_0=x_0,
@@ -259,7 +256,7 @@ class Missile2D(object):
     def Cx(self):
         return self.Cx_itr(self.alpha, self.M)
 
-    def step(self, action, tau=0.1):
+    def step(self, action, tau=0.1, dtn=0.01):
         """
         Метод моделирования динамики ракеты за шаг по времени tau.
         На протяжении tau управляющее воздействие на ракету постоянно (action).
@@ -275,8 +272,8 @@ class Missile2D(object):
 
         flag = True
         while flag:
-            if t_end - t > self.dt:
-                dt = self.dt
+            if t_end - t > dtn:
+                dt = dtn
             else:
                 dt = t_end - t
                 flag = False
@@ -338,7 +335,7 @@ class Missile2D(object):
 
         return y
 
-    def get_action_alignment_guidance(self, target, guid_pos=(0, 0), tau=1 / 30):
+    def get_action_alignment_guidance(self, target, guid_pos=(0, 0), tau=1/10):
         """
         Метод, возвращающий аналог action'a, соответствующий методу совмещения ("трех точек")
         arguments: target {object} -- ссылка на цель. Обязательно должен иметь два свойства:
@@ -460,6 +457,10 @@ class Missile2D(object):
         trg_pos = np.array(trg_pos)
         missile_pos = np.array(missile_pos) if missile_pos else np.array([0, 0])
         suc, meeting_point = self.get_instant_meeting_point(trg_pos, trg_vel, missile_vel_abs, missile_pos)
+        if missile_vel_abs:
+            print(f'Meeting: {suc} --> approximate point: {meeting_point}')
+        else:
+            print(f'Meeting: {suc}')
         vis = meeting_point - missile_pos
         Q = np.arctan2(vis[1], vis[0])
         return np.array([self.V_0, missile_pos[0], missile_pos[1], Q, self.alpha_0, self.t_0])
@@ -476,9 +477,12 @@ class Missile2D(object):
         """
         trg_pos = np.array(trg_pos)
         trg_vel = np.array(trg_vel)
-        my_pos = np.array(mis_pos)
+        mis_pos = np.array(mis_pos)
 
-        vis = trg_pos - my_pos
+        if mis_vel_abs is None:
+            return False, trg_pos
+
+        vis = trg_pos - mis_pos
         vis1 = vis / np.linalg.norm(vis)
 
         trg_vel_tau = np.dot(trg_vel, vis1) * vis1
@@ -487,10 +491,10 @@ class Missile2D(object):
         if np.linalg.norm(trg_vel_n) > mis_vel_abs:
             return False, trg_pos
 
-        my_vel_n = trg_vel_n
-        my_vel_tau = vis1 * sqrt(mis_vel_abs ** 2 - np.linalg.norm(my_vel_n) ** 2)
+        mis_vel_n = trg_vel_n
+        mis_vel_tau = vis1 * sqrt(mis_vel_abs ** 2 - np.linalg.norm(mis_vel_n) ** 2)
 
-        vel_close = my_vel_tau - trg_vel_tau
+        vel_close = mis_vel_tau - trg_vel_tau
         if np.dot(vis1, vel_close) <= 0:
             return False, trg_pos
 

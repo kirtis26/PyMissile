@@ -82,7 +82,7 @@ class Aerodynamic(object):
         ts = np.linspace(0, missile.t_marsh, 100)
         x_ct_itr = Interp1d(ts, get_x_ct(ts))
 
-        return cls(missile=missile,
+        return cls(state=missile.state,
                    d=d,
                    d_kon1=d_kon1,
                    d_korm=d_korm,
@@ -133,9 +133,9 @@ class Aerodynamic(object):
                    a=a,
                    x_ct_itr=x_ct_itr)
 
-    def __init__(self, missile, **kwargs):
+    def __init__(self, state, **kwargs):
 
-        self.mis = missile
+        self.state = state
         self.x_ct_itr = kwargs['x_ct_itr']
 
         # Геометрия корпуса
