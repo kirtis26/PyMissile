@@ -1,6 +1,6 @@
 import numpy as np
 from interpolation import InterpVec
-
+from scenarios import scenarios
 
 class Target2D(object):
        
@@ -12,6 +12,16 @@ class Target2D(object):
         target = cls(vel_interp=vel_interp,
                      state_init=parameters)
         target.set_init_cond(parameters=parameters)
+        return target
+
+    @classmethod
+    def get_target(cls, scenario_name='SUCCESS', scenario_i=0):
+        velocity_vectors = scenarios[scenario_name][scenario_i]['trg_vels']
+        x, y = scenarios[scenario_name][scenario_i]['trg_pos_0']
+
+        vel_interp = InterpVec(velocity_vectors)
+        target = cls(vel_interp=vel_interp)
+        target.set_init_cond(parameters_of_target=np.array([x, y, 0]))
         return target
 
     def __init__(self, **kwargs):

@@ -144,6 +144,18 @@ class Missile2D(object):
 
         return missile
 
+    @property
+    def y(self):
+        return self.get_state()[2]
+
+    @property
+    def a(self):
+        return self.atm_itr(self.y, 4)
+
+    @property
+    def nyu(self):
+        return self.atm_itr(self.y, 6)
+
     def get_init_parameters(self):
         """
         Метод, возвращающий начальное состояние ракеты
@@ -444,7 +456,7 @@ class Missile2D(object):
 
         return alpha_req / self.alpha_max
 
-    def get_parameters_of_missile_to_meeting_target(self, trg_pos, trg_vel, missile_vel_abs, missile_pos=None):
+    def get_parameters_of_missile_to_meeting_target(self, trg_pos, trg_vel, missile_vel_abs, missile_pos=None, desc=True):
         """
         Метод, возвращающий состояние ракеты, которая нацелена на мгновенную точку встречи с целью
         arguments: trg_vel {tuple/list/np.ndarray} -- вектор скорости цели
@@ -457,10 +469,11 @@ class Missile2D(object):
         trg_pos = np.array(trg_pos)
         missile_pos = np.array(missile_pos) if missile_pos else np.array([0, 0])
         suc, meeting_point = self.get_instant_meeting_point(trg_pos, trg_vel, missile_vel_abs, missile_pos)
-        if missile_vel_abs:
-            print(f'Meeting point: {suc} --> approximate point: {meeting_point}')
-        else:
-            print(f'Meeting point: {suc}')
+        if desc:
+            if missile_vel_abs:
+                print(f'Meeting point: {suc} --> approximate point: {meeting_point}')
+            else:
+                print(f'Meeting point: {suc}')
         vis = meeting_point - missile_pos
         Q = np.arctan2(vis[1], vis[0])
         return np.array([self.V_0, missile_pos[0], missile_pos[1], Q, self.alpha_0, self.t_0])

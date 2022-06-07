@@ -2,14 +2,15 @@ import numpy as np
 from missile import Missile2D
 from target import Target2D
 from math import *
+from aero import Aerodynamic
 
 
 class MissileGym(object):
-    scenario_names = {}  # TODO: сделать сэт сценариев
 
     def __init__(self, **kwargs):
         self.missile = kwargs['missile']
         self.target = kwargs['target']
+        self.AeroDynamicModels = kwargs['AeroDynamicModels']
         self.tau = kwargs['tau']
         self.dt = kwargs['dt']
         self.t_max = kwargs['t_max']
@@ -17,22 +18,7 @@ class MissileGym(object):
         self._trg_state_len = self.target.get_state().shape[0]
 
     @classmethod
-    def make(cls, missile_opts, scenario_name):
-        if scenario_name not in cls.scenario_names:
-            raise AttributeError(
-                f'Error! Unknown scenario: "{scenario_name}" \n Available scenarios: {cls.scenario_names}')
-        elif scenario_name == 'standart':
-            target = Target2D.get_target()
-            missile = Missile2D.get_missile(missile_opts)
-        elif scenario_name == 'sc_simple_1':
-            pass
-        # TODO: дописать все сценарии
-        missile_parameters = Missile2D.get_parameters_of_missile_to_meeting_target(target.pos, target.vel, missile.vel_max/2)
-        missile.set_init_parameteres(parameters=missile_parameters)
-        return cls(missile=missile, target=target)
-
-    @classmethod
-    def make_simple_scenario(cls, missile_opts, target_pos, target_vel, tau=0.1, t_max=100, n=10):
+    def make_simple_scenario(cls, missile_opts, target_pos, target_vel, tau=0.01, t_max=30, n=10, desc=True, missile_geom_opts=None):
         """
         Классовый метод создания простого сценария движения цели, в котором происходит инициилизация
         объектов Missile и Target, начальных параметров наведения ракеты на цель.
@@ -47,14 +33,15 @@ class MissileGym(object):
         mis_vel_abs = None if mis_vel_abs is None else mis_vel_abs / 2
         mis_pos = missile_opts['init_conditions'].get('pos_0', None)
         missile = Missile2D.get_missile(missile_opts)
-        mis_params = missile.get_parameters_of_missile_to_meeting_target(target.pos, target.vel, mis_vel_abs, mis_pos)
+        mis_params = missile.get_parameters_of_missile_to_meeting_target(target.pos, target.vel, mis_vel_abs, mis_pos, desc)
         missile.set_init_parameters(parameters=mis_params)
-        return cls(missile=missile, target=target, t_max=t_max, tau=tau, dt=dt)
+        AeroDynamicModels = Aerodynamic.get_aero_models(missile, missile_geom_opts) if missile_geom_opts is not None else None
+        return cls(missile=missile, target=target, AeroDynamicModels=AeroDynamicModels, t_max=t_max, tau=tau, dt=dt)
 
     @staticmethod
     def launch(gym, aero=False, record=True, desc=True):
         """
-
+        Метод класса, запускающий инициилизированный сценарий движения цели
         """
         done = False
         gym.reset()
@@ -65,7 +52,7 @@ class MissileGym(object):
         while not done:
             done, info = gym.step_with_guidance()
             state = gym.get_state()
-            aero_result = gym.get_aero_constants() if aero else {}
+            aero_result = gym.get_aero_constants(state, gym.missile) if aero else {}
             if record:
                 history.append((state, done, info, aero_result))
                 alphas_targeting.append(gym.missile.alpha_targeting if abs(
@@ -210,7 +197,7 @@ class MissileGym(object):
         # mis_vel1 = mis_vel / np.linalg.norm(mis_vel)
         mis_axis = self.missile.x_axis
         mis_axis1 = mis_axis / np.linalg.norm(mis_axis)
-        return mis_axis1 @ vis_n < 0.5
+        return mis_axis1 @ vis_n < 0.1
 
     @staticmethod
     def get_overload(vel0, vel1, tau):
@@ -243,9 +230,7 @@ class MissileGym(object):
         Метод, вычисляющий аэродинамические коэффициенты и характеристики ракеты в текущем состоянии state
         returns: {dict}
         """
-        mis_state = self.missile.get_state()
-        # TODO: AERO models
-        pass
+        return self.AeroDynamicModels.get_aero_constants(self.missile.get_state())
 
     def get_etta(self, miss=None, target=None):
         """
