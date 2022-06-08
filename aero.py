@@ -308,8 +308,11 @@ class Aerodynamic(object):
 
         # Коэф-т подъемной силы задних поверхностей по углу атаки
         K_t_2 = table_3_22(Mach, self.x_otn_1_2)
+        Mach_2 = Mach * np.sqrt(K_t_2)
+        Cy1_alpha_k_2 = Cy_alpha_iz_kr(Mach_2, self.lambd_2, self.c_2, self.tg_khi_05_2)
         Cy_2 = table_3_5(Mach * np.sqrt(K_t_2), self.L_2, self.c_2, self.tg_khi_05_2)
         K_aa_2 = 1 + 3 * self.D_2 - (self.D_2 * (1 - self.D_2)) / self.nu_k_2
+        k_aa_2 = (1 + 0.41 * self.D_2) ** 2 * ((1 + 3 * self.D_2 - 1 / self.nu_k_2 * self.D_2 * (1 - self.D_2)) / (1 + self.D_2) ** 2)
         eps_sr_alf = 0
         Cy1_alpha_2 = (Cy_2 * K_aa_2) * (1 - eps_sr_alf)
 
@@ -381,7 +384,6 @@ class Aerodynamic(object):
         Cx_oper = Cx_0_1 + Cx_ind_1
 
         # Сопротивление крыльев
-        Mach_2 = Mach * np.sqrt(K_t_2)
         Re_kr_f = v * self.b_a_2 / nyu
         Re_kr_t = table_4_5(Mach_2, Re_kr_f, self.class_2, self.b_a_2)
         x_t_kr = Re_kr_t / Re_kr_f
@@ -407,64 +409,90 @@ class Aerodynamic(object):
         Cx_ind = Cx_ind_korp * S_korp + Cx_ind_1 * S_1 * K_t_1 + Cx_ind_2 * S_2 * K_t_2
         Cx = Cx_0 + Cx_ind
 
-        # # Центр давления корпуса
-        # delta_x_f = F_iz_korp(Mach, self.lambd_nos, self.lambd_cil, self.L_nos)
-        # x_fa_nos_cil = self.L_nos - self.W_nos / self.S_mid + delta_x_f
-        # x_fa_korm = self.L_korp - 0.5 * self.L_korm
-        # x_fa_korp = 1 / Cy_alpha_korp * (Cy_alpha_nos * x_fa_nos_cil + Cy_alpha_korm * x_fa_korm)
-        #
-        # # Фокус оперения по углу атаки
-        # x_f_iz_oper_ = F_iz_kr(Mach, self.lambd_k_oper, self.tg_khi_05_oper, self.nu_k_oper)
-        # x_f_iz_oper = self.x_b_a_oper + self.b_a_oper * x_f_iz_oper_
-        # f1 = table_5_11(self.D_oper, self.L_k_oper)
-        # x_f_delt_oper = x_f_iz_oper - self.tg_khi_05_oper * f1
-        # if Mach > 1:
-        #     b__b_oper = self.b_b_oper / (np.pi / 2 * self.d * np.sqrt(Mach ** 2 - 1))
-        #     L__hv_oper = self.L_hv_oper / (np.pi * self.d * np.sqrt(Mach ** 2 - 1))
-        #     c_const_oper = (4 + 1 / self.nu_k_oper) * (1 + 8 * self.D_oper ** 2)
-        #     F_1_oper = 1 - 1 / (c_const_oper * b__b_oper ** 2) * (1 - np.exp(-c_const_oper * b__b_oper ** 2))
-        #     F_oper = (1 - np.sqrt(np.pi) / (2 * b__b_oper * np.sqrt(c_const_oper)) *\
-        #              (table_int_ver((b__b_oper + L__hv_oper) * np.sqrt(2 * c_const_oper)) -\
-        #             table_int_ver(L__hv_oper * np.sqrt(2 * c_const_oper))))
-        #     x_f_b_oper_ = x_f_iz_oper_ + 0.02 * self.lambd_oper * self.tg_khi_05_oper
-        #     x_f_ind_oper = self.x_b_oper + self.b_b_oper * x_f_b_oper_ * F_oper * F_1_oper
-        #     x_fa_oper = 1 / K_aa_oper * (x_f_iz_oper + (k_aa_oper - 1) * x_f_delt_oper + (K_aa_oper - k_aa_oper) * x_f_ind_oper)
-        # else:
-        #     x_f_b_oper_ = x_f_iz_oper_ + 0.02 * self.lambd_oper * self.tg_khi_05_oper
-        #     x_f_ind_oper = self.x_b_oper + self.b_b_oper * x_f_b_oper_
-        #     x_fa_oper = 1 / K_aa_oper * (
-        #             x_f_iz_oper + (k_aa_oper - 1) * x_f_delt_oper + (K_aa_oper - k_aa_oper) * x_f_ind_oper)
-        #
-        # # Фокус оперения по углу отклонения
-        # x_fd_oper = 1 / K_delt_0_oper * (k_delt_0_oper * x_f_iz_oper + (K_delt_0_oper - k_delt_0_oper) * x_f_ind_oper)
-        #
-        # # Фокус ракеты
-        # x_fa = 1 / Cy_alpha * ((Cy_alpha_korp * (self.S_mid / self.S_mid) * x_fa_korp) + Cy_alpha_oper * (
-        #         self.S_oper / self.S_mid) * x_fa_oper * K_t_oper)
-        #
-        # # Демпфирующие моменты АД поверхностей
-        # x_c_ob = self.L_korp * ((2 * (self.lambd_nos + self.lambd_cil) ** 2 - self.lambd_nos ** 2) / (
-        #         4 * (self.lambd_nos + self.lambd_cil) * (self.lambd_nos + self.lambd_cil - 2 / 3 * self.lambd_nos)))
-        # m_z_wz_korp = - 2 * (1 - x_ct / self.L_korp + (x_ct / self.L_korp) ** 2 - x_c_ob / self.L_korp)
-        #
-        # x_ct_oper_ = (x_ct - self.x_b_a_oper) / self.b_a_oper
-        #
-        # mz_wz_cya_iz_kr = table_5_15(self.nu_oper, self.lambd_oper, self.tg_khi_05_oper, Mach)
-        # B1 = table_5_16(self.lambd_oper, self.tg_khi_05_oper, Mach)
-        # m_z_wz_oper = (mz_wz_cya_iz_kr - B1 * (1 / 2 - x_ct_oper_) - 57.3 * (
-        #         1 / 2 - x_ct_oper_) ** 2) * K_aa_oper * Cy_alpha_k_oper
-        #
-        # m_z_wz = m_z_wz_korp * (self.S_mid / self.S_mid) * (self.L_korp / self.L_korp) ** 2 + m_z_wz_oper * (
-        #         self.S_oper / self.S_mid) * (self.b_a_oper / self.L_korp) ** 2 * np.sqrt(K_t_oper)
-        #
-        # # Балансировочная зависимость
-        # M_z_delt = Cy_delt_oper * (x_ct - x_fd_oper) / self.L_korp
-        # M_z_alpha = Cy_alpha * (x_ct - x_fa) / self.L_korp
-        # ballans_relation = - (M_z_alpha / M_z_delt)
-        #
-        # # Запас статической устойчивости
-        # m_z_cy = (x_ct - x_fa) / self.L_korp
-        #
+        # Центр давления корпуса
+        delta_x_f = F_iz_korp(Mach, self.lambd_nos, self.lambd_cil, self.L_nos)
+        x_fa_nos_cil = self.L_nos - self.W_nos / self.S_mid + delta_x_f
+        x_fa_korm = self.L_korp - 0.5 * self.L_korm
+        x_fa_korp = 1 / Cy1_alpha_korp * (Cy1_alpha_nos * x_fa_nos_cil + Cy1_alpha_korm * x_fa_korm)
+
+        # Фокус оперения по углу атаки
+        x_f_iz_oper_ = F_iz_kr(Mach, self.lambd_k_1, self.tg_khi_05_1, self.nu_k_1)
+        x_f_iz_oper = self.x_b_a_1 + self.b_a_1 * x_f_iz_oper_
+        f1 = table_5_11(self.D_1, self.L_k_1)
+        x_f_delt_oper = x_f_iz_oper - self.tg_khi_05_1 * f1
+        if Mach > 1:
+            b__b_oper = self.b_b_1 / (np.pi / 2 * self.d * np.sqrt(Mach ** 2 - 1))
+            L__hv_oper = self.L_hv_1 / (np.pi * self.d * np.sqrt(Mach ** 2 - 1))
+            c_const_oper = (4 + 1 / self.nu_k_1) * (1 + 8 * self.D_1 ** 2)
+            F_1_oper = 1 - 1 / (c_const_oper * b__b_oper ** 2) * (1 - np.exp(-c_const_oper * b__b_oper ** 2))
+            F_oper = (1 - np.sqrt(np.pi) / (2 * b__b_oper * np.sqrt(c_const_oper)) *\
+                      (table_int_ver((b__b_oper + L__hv_oper) * np.sqrt(2 * c_const_oper)) -\
+                       table_int_ver(L__hv_oper * np.sqrt(2 * c_const_oper))))
+            x_f_b_oper_ = x_f_iz_oper_ + 0.02 * self.lambd_1 * self.tg_khi_05_1
+            x_f_ind_oper = self.x_b_1 + self.b_b_1 * x_f_b_oper_ * F_oper * F_1_oper
+            x_fa_oper = 1 / K_aa_1 * (x_f_iz_oper + (k_aa_1 - 1) * x_f_delt_oper + (K_aa_1 - k_aa_1) * x_f_ind_oper)
+        else:
+            x_f_b_oper_ = x_f_iz_oper_ + 0.02 * self.lambd_1 * self.tg_khi_05_1
+            x_f_ind_oper = self.x_b_1 + self.b_b_1 * x_f_b_oper_
+            x_fa_oper = 1 / K_aa_1 * (
+                    x_f_iz_oper + (k_aa_1 - 1) * x_f_delt_oper + (K_aa_1 - k_aa_1) * x_f_ind_oper)
+
+        # Фокус крыльев по углу атаки
+        x_f_iz_kr_ = F_iz_kr(Mach_2, self.lambd_k_2, self.tg_khi_05_2, self.nu_k_2)
+        x_f_iz_kr = self.x_b_a_2 + self.b_a_2 * x_f_iz_kr_
+        f2 = table_5_11(self.D_2, self.L_k_2)
+        x_f_delt_kr = x_f_iz_kr - self.tg_khi_05_2 * f2
+        if Mach_2 > 1:
+            b__b_kr = self.b_b_2 / (np.pi / 2 * self.d * np.sqrt(Mach_2 ** 2 - 1))
+            L__hv_kr = self.L_hv_2 / (np.pi * self.d * np.sqrt(Mach_2 ** 2 - 1))
+            c_const_kr = (4 + 1 / self.nu_k_2) * (1 + 8 * self.D_2 ** 2)
+            F_2_kr = 1 - 1 / (c_const_kr * b__b_kr ** 2) * (1 - np.exp(-c_const_kr * b__b_kr ** 2))
+            F_kr = (1 - np.sqrt(np.pi) / (2 * b__b_kr * np.sqrt(c_const_kr)) * \
+                          (table_int_ver((b__b_kr + L__hv_kr) * np.sqrt(2 * c_const_kr)) - \
+                           table_int_ver(L__hv_kr * np.sqrt(2 * c_const_kr))))
+            x_f_b_kr_ = x_f_iz_kr_ + 0.02 * self.lambd_2 * self.tg_khi_05_2
+            x_f_ind_kr = self.x_b_2 + self.b_b_2 * x_f_b_kr_ * F_kr * F_2_kr
+            x_fa_kr = 1 / K_aa_2 * (x_f_iz_kr + (k_aa_2 - 1) * x_f_delt_kr + (K_aa_2 - k_aa_2) * x_f_ind_kr)
+        else:
+            x_f_b_kr_ = x_f_iz_kr_ + 0.02 * self.lambd_2 * self.tg_khi_05_2
+            x_f_ind_kr = self.x_b_2 + self.b_b_2 * x_f_b_kr_
+            x_fa_kr = 1 / K_aa_2 * (x_f_iz_kr + (k_aa_2 - 1) * x_f_delt_kr + (K_aa_2 - k_aa_2) * x_f_ind_kr)
+
+        K_delt_0_1 = k_aa_1
+        K_delt_0_2 = k_aa_2
+        k_delt_0_1 = k_aa_1 ** 2 / K_aa_1
+        k_delt_0_2 = k_aa_2 ** 2 / K_aa_1
+        # Фокус оперения по углу отклонения
+        x_fd_oper = 1 / K_delt_0_1 * (k_delt_0_1 * x_f_iz_oper + (K_delt_0_1 - k_delt_0_1) * x_f_ind_oper)
+
+        # Фокус ракеты
+        x_fa = 1 / Cy1_alpha * ((Cy1_alpha_korp * S_korp * x_fa_korp) + Cy1_alpha_1 * S_1 * x_fa_oper * K_t_1 + Cy1_alpha_2 * S_2 * x_fa_kr * K_t_2)
+
+        # Демпфирующие моменты АД поверхностей
+        x_c_ob = self.L_korp * ((2 * (self.lambd_nos + self.lambd_cil) ** 2 - self.lambd_nos ** 2) / (
+                4 * (self.lambd_nos + self.lambd_cil) * (self.lambd_nos + self.lambd_cil - 2 / 3 * self.lambd_nos)))
+        m_z_wz_korp = - 2 * (1 - x_ct / self.L_korp + (x_ct / self.L_korp) ** 2 - x_c_ob / self.L_korp)
+
+        x_ct_oper_ = (x_ct - self.x_b_a_1) / self.b_a_1
+        mz_wz_cya_iz_kr = table_5_15(self.nu_1, self.lambd_1, self.tg_khi_05_1, Mach)
+        B1 = table_5_16(self.lambd_1, self.tg_khi_05_1, Mach)
+        m_z_wz_oper = (mz_wz_cya_iz_kr - B1 * (1 / 2 - x_ct_oper_) - 57.3 * (1 / 2 - x_ct_oper_) ** 2) * K_aa_1 * Cy1_alpha_k_1
+
+        x_ct_kr_ = (x_ct - self.x_b_a_2) / self.b_a_2
+        mz_wz_cya_iz_kr = table_5_15(self.nu_2, self.lambd_2, self.tg_khi_05_2, Mach_2)
+        B1 = table_5_16(self.lambd_2, self.tg_khi_05_2, Mach_2)
+        m_z_wz_kr = (mz_wz_cya_iz_kr - B1 * (1 / 2 - x_ct_kr_) - 57.3 * (1 / 2 - x_ct_kr_) ** 2) * K_aa_2 * Cy1_alpha_k_2
+
+        m_z_wz = m_z_wz_korp * S_korp * (self.L_korp / self.L_korp) ** 2 + m_z_wz_oper * S_1 * (self.b_a_1 / self.L_korp) ** 2 * np.sqrt(K_t_1) + m_z_wz_kr * S_2 * (self.b_a_2 / self.L_korp) ** 2 * np.sqrt(K_t_2)
+
+        # Балансировочная зависимость
+        M_z_delt = Cy_delt_1 * (x_ct - x_fd_oper) / self.L_korp
+        M_z_alpha = Cy1_alpha * (x_ct - x_fa) / self.L_korp
+        ballans_relation = - (M_z_alpha / M_z_delt)
+
+        # Запас статической устойчивости
+        m_z_cy = (x_ct - x_fa) / self.L_korp
+
         return {
             't': t,
             'y': y,
@@ -486,16 +514,16 @@ class Aerodynamic(object):
             'Cx_ind_kr': Cx_ind_2,
             'Cx_kr': Cx_kr,
             'Cx_oper': Cx_oper,
-            'Cx_korp': Cx_korp
-         }
-    #     'x_fa': x_fa,
-    #     'x_fa_korp': x_fa_korp,
-    #     'x_fa_oper': x_fa_oper,
-    #     'x_fd_oper': x_fd_oper,
-    #     'm_z_cy': m_z_cy,
-    #     'm_z_wz': m_z_wz,
-    #     'm_z_wz_korp': m_z_wz_korp,
-    #     'm_z_wz_oper': m_z_wz_oper,
-    #     'ballans_relation': ballans_relation,
-    #     'M_z_alpha': M_z_alpha,
-    #     'M_z_delt': M_z_delt
+            'Cx_korp': Cx_korp,
+            'x_fa': x_fa,
+            'x_fa_korp': x_fa_korp,
+            'x_fa_oper': x_fa_oper,
+            'x_fd_oper': x_fd_oper,
+            'm_z_cy': m_z_cy,
+            'm_z_wz': m_z_wz,
+            'm_z_wz_korp': m_z_wz_korp,
+            'm_z_wz_oper': m_z_wz_oper,
+            'ballans_relation': ballans_relation,
+            'M_z_alpha': M_z_alpha,
+            'M_z_delt': M_z_delt
+        }
