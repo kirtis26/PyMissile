@@ -518,11 +518,13 @@ class Aerodynamic(object):
             'x_fa': x_fa,
             'x_fa_korp': x_fa_korp,
             'x_fa_oper': x_fa_oper,
+            'x_fa_kr': x_fa_kr,
             'x_fd_oper': x_fd_oper,
             'm_z_cy': m_z_cy,
             'm_z_wz': m_z_wz,
             'm_z_wz_korp': m_z_wz_korp,
             'm_z_wz_oper': m_z_wz_oper,
+            'm_z_wz_kr': m_z_wz_kr,
             'ballans_relation': ballans_relation,
             'M_z_alpha': M_z_alpha,
             'M_z_delt': M_z_delt
