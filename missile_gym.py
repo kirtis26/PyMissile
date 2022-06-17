@@ -63,7 +63,7 @@ class MissileGym(object):
             print(f'info = {information}')
 
         if record:
-            mis_vs, mis_xs, mis_ys, mis_vels, alphas, Qs = [], [], [], [], [], []
+            mis_vs, mis_xs, mis_ys, mis_vels, alphas, Qs, mis_mach = [], [], [], [], [], [], []
             trg_xs, trg_ys, trg_vs, trg_vels = [], [], [], []
             infos, aeros, ts = [], [], []
 
@@ -84,6 +84,7 @@ class MissileGym(object):
                 mis_vels.append(gym.missile.vel)
                 aeros.append(aero_res)
                 infos.append(info)
+                mis_mach.append(mis_summary['Mach'])
 
             trg_nys = [MissileGym.get_overload(v0, v1, t1 - t0)[1] for v0, v1, t1, t0 in
                        zip(trg_vels, trg_vels[1:], ts[1:], ts)]
@@ -102,7 +103,7 @@ class MissileGym(object):
             dict_res = {
                 't': ts,
                 'missile': {'v': mis_vs, 'x': mis_xs, 'y': mis_ys, 'Q': Qs, 'alpha': alphas, 'nx': mis_nxs,
-                            'ny': mis_nys, 'vel': mis_vels},
+                            'ny': mis_nys, 'vel': mis_vels, 'M': mis_mach},
                 'target': {'v': trg_vs, 'x': trg_xs, 'y': trg_ys, 'ny': trg_nys, 'nx': trg_nxs, 'vel': trg_vels},
                 'alpha_targeting': alphas_targeting,
                 'aero': aeros,

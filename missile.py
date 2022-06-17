@@ -525,6 +525,7 @@ class Missile2D(object):
             'v': self.v,
             'x': self.x,
             'y': self.y,
+            'Mach': self.v / self.a,
             'Q': np.degrees(self.Q),
             'm': self.m_itr(self.t),
             'P': self.P_itr(self.t),
